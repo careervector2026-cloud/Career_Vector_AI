@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+requests
+pdfminer.six
+python-docx
+sentence-transformers
+torch
+uvicorn[standard]
+fastapi[standard]
+pandas
+scikit-learn
+joblib

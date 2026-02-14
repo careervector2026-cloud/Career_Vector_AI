@@ -1,0 +1,13 @@
+{
+  "java": ["java"],
+  "spring boot": ["spring boot", "springboot"],
+  "spring mvc": ["spring mvc"],
+  "rest api": ["rest api", "restful api"],
+  "sql": ["sql", "mysql", "postgresql"],
+  "docker": ["docker"],
+  "aws": ["aws", "ec2", "s3", "rds"],
+  "git": ["git", "github"],
+  "python": ["python"],
+  "django": ["django"],
+  "react": ["react", "reactjs"]
+}

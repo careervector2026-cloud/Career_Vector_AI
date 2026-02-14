@@ -1,0 +1,53 @@
+{
+  "sql": [
+    "https://sqlzoo.net/",
+    "https://www.w3schools.com/sql/",
+    "https://mode.com/sql-tutorial/",
+    "https://leetcode.com/problemset/database/"
+  ],
+
+  "python": [
+    "https://realpython.com/",
+    "https://docs.python.org/3/",
+    "https://www.programiz.com/python-programming",
+    "https://leetcode.com/problemset/all/?difficulty=Easy"
+  ],
+
+  "java": [
+    "https://docs.oracle.com/javase/tutorial/",
+    "https://www.baeldung.com/java-tutorial",
+    "https://www.javatpoint.com/java-tutorial"
+  ],
+
+  "rest api": [
+    "https://restfulapi.net/",
+    "https://developer.mozilla.org/en-US/docs/Web/API",
+    "https://www.baeldung.com/rest-with-spring-series",
+    "https://swagger.io/docs/specification/about/"
+  ],
+
+  "spring boot": [
+    "https://spring.io/guides",
+    "https://spring.io/projects/spring-boot",
+    "https://www.baeldung.com/spring-boot",
+    "https://www.youtube.com/playlist?list=PLqq-6Pq4lTTa5gK1z0Kc5sM1mZs6yK6yK"
+  ],
+
+  "django": [
+    "https://docs.djangoproject.com/en/stable/",
+    "https://developer.mozilla.org/en-US/docs/Learn/Server-side/Django",
+    "https://www.djangoproject.com/start/"
+  ],
+
+  "system design": [
+    "https://github.com/donnemartin/system-design-primer",
+    "https://www.educative.io/courses/grokking-the-system-design-interview",
+    "https://bytebytego.com/"
+  ],
+
+  "machine learning": [
+    "https://developers.google.com/machine-learning/crash-course",
+    "https://scikit-learn.org/stable/user_guide.html",
+    "https://www.kaggle.com/learn"
+  ]
+}

@@ -1,0 +1,436 @@
+{
+  "spring boot": {
+    "estimated_total_weeks": 8,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Core Spring",
+        "duration_weeks": 2,
+        "topics": [
+          "Spring Architecture",
+          "Dependency Injection",
+          "IoC Container",
+          "Spring Annotations",
+          "Bean Lifecycle",
+          "Spring AOP"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "Web & Data",
+        "duration_weeks": 3,
+        "topics": [
+          "Spring MVC",
+          "REST APIs",
+          "Request Mapping",
+          "Exception Handling",
+          "Spring Data JPA",
+          "Hibernate",
+          "Transactions"
+        ]
+      },
+      {
+        "level": 3,
+        "name": "Security & Microservices",
+        "duration_weeks": 3,
+        "topics": [
+          "Spring Security",
+          "Authentication & Authorization",
+          "JWT",
+          "OAuth2",
+          "Spring Cloud",
+          "Eureka",
+          "API Gateway",
+          "Circuit Breaker"
+        ]
+      }
+    ]
+  },
+
+  "sql": {
+  "estimated_total_weeks": 5,
+  "levels": [
+    {
+      "level": 1,
+      "name": "Core SQL",
+      "duration_weeks": 2,
+      "topics": [
+        "SELECT",
+        "WHERE",
+        "JOINS",
+        "GROUP BY",
+        "Subqueries"
+      ]
+    },
+    {
+      "level": 2,
+      "name": "Advanced SQL",
+      "duration_weeks": 2,
+      "topics": [
+        "Indexes",
+        "Constraints",
+        "Normalization",
+        "Views",
+        "Stored Procedures"
+      ]
+    },
+    {
+      "level": 3,
+      "name": "SQL Flavors",
+      "duration_weeks": 1,
+      "topics": [
+        "MySQL",
+        "PostgreSQL",
+        "SQLite",
+        "Oracle Basics"
+      ]
+    }
+  ]
+},
+
+  "django": {
+    "estimated_total_weeks": 6,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Django Basics",
+        "duration_weeks": 2,
+        "topics": [
+          "MVT Architecture",
+          "Models",
+          "Views",
+          "Templates",
+          "URL Routing"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "APIs & Database",
+        "duration_weeks": 2,
+        "topics": [
+          "ORM",
+          "Migrations",
+          "Django REST Framework",
+          "Serializers",
+          "Pagination"
+        ]
+      },
+      {
+        "level": 3,
+        "name": "Auth & Deployment",
+        "duration_weeks": 2,
+        "topics": [
+          "Authentication",
+          "Authorization",
+          "JWT",
+          "Permissions",
+          "Deployment"
+        ]
+      }
+    ]
+  },
+
+  "git": {
+  "estimated_total_weeks": 2,
+  "levels": [
+    {
+      "level": 1,
+      "name": "Git Basics",
+      "duration_weeks": 1,
+      "topics": [
+        "Git Init",
+        "Commit",
+        "Branching",
+        "Merging",
+        "Stashing"
+      ]
+    },
+    {
+      "level": 2,
+      "name": "Collaboration",
+      "duration_weeks": 1,
+      "topics": [
+        "Pull Requests",
+        "Rebase",
+        "Conflict Resolution",
+        "GitHub Flow",
+        "Code Reviews"
+      ]
+    }
+  ]
+},
+
+  "java": {
+    "estimated_total_weeks": 6,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Core Java",
+        "duration_weeks": 3,
+        "topics": [
+          "OOP",
+          "Collections",
+          "Exception Handling",
+          "JVM",
+          "Garbage Collection"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "Advanced Java",
+        "duration_weeks": 3,
+        "topics": [
+          "Multithreading",
+          "Concurrency",
+          "Streams",
+          "Functional Programming",
+          "Memory Management"
+        ]
+      }
+    ]
+  },
+
+  "python": {
+    "estimated_total_weeks": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Python Basics",
+        "duration_weeks": 2,
+        "topics": [
+          "Syntax",
+          "Data Types",
+          "Functions",
+          "OOP",
+          "Modules"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "Advanced Python",
+        "duration_weeks": 3,
+        "topics": [
+          "Decorators",
+          "Generators",
+          "Async Programming",
+          "Virtual Environments",
+          "Packaging"
+        ]
+      }
+    ]
+  },
+
+  "html": {
+    "estimated_total_weeks": 2,
+    "levels": [
+      {
+        "level": 1,
+        "name": "HTML Core",
+        "duration_weeks": 1,
+        "topics": [
+          "HTML Structure",
+          "Semantic Tags",
+          "Forms",
+          "Accessibility"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "Advanced HTML",
+        "duration_weeks": 1,
+        "topics": [
+          "SEO Basics",
+          "Media Elements",
+          "Best Practices"
+        ]
+      }
+    ]
+  },
+
+  "css": {
+    "estimated_total_weeks": 3,
+    "levels": [
+      {
+        "level": 1,
+        "name": "CSS Fundamentals",
+        "duration_weeks": 1,
+        "topics": [
+          "Selectors",
+          "Box Model",
+          "Positioning",
+          "Flexbox"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "Advanced CSS",
+        "duration_weeks": 2,
+        "topics": [
+          "Grid",
+          "Responsive Design",
+          "Animations",
+          "Preprocessors"
+        ]
+      }
+    ]
+  },
+
+  "javascript": {
+    "estimated_total_weeks": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "JS Basics",
+        "duration_weeks": 2,
+        "topics": [
+          "Variables",
+          "Functions",
+          "Loops",
+          "DOM Manipulation"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "Advanced JS",
+        "duration_weeks": 3,
+        "topics": [
+          "Closures",
+          "Promises",
+          "Async/Await",
+          "Event Loop",
+          "Modules"
+        ]
+      }
+    ]
+  },
+
+  "react": {
+    "estimated_total_weeks": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "React Basics",
+        "duration_weeks": 2,
+        "topics": [
+          "Components",
+          "JSX",
+          "Props",
+          "State",
+          "Hooks"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "Advanced React",
+        "duration_weeks": 3,
+        "topics": [
+          "Context API",
+          "Redux",
+          "Routing",
+          "Performance Optimization",
+          "Testing"
+        ]
+      }
+    ]
+  },
+
+  "node": {
+    "estimated_total_weeks": 4,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Node Basics",
+        "duration_weeks": 2,
+        "topics": [
+          "Node Runtime",
+          "Modules",
+          "NPM",
+          "File System",
+          "HTTP Server"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "Backend with Node",
+        "duration_weeks": 2,
+        "topics": [
+          "Express.js",
+          "REST APIs",
+          "Middleware",
+          "Authentication",
+          "Deployment"
+        ]
+      }
+    ]
+  },
+
+  "linux": {
+    "estimated_total_weeks": 3,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Linux Basics",
+        "duration_weeks": 1,
+        "topics": [
+          "File System",
+          "Basic Commands",
+          "Permissions",
+          "Processes"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "Advanced Linux",
+        "duration_weeks": 2,
+        "topics": [
+          "Shell Scripting",
+          "Networking",
+          "System Monitoring",
+          "Package Management"
+        ]
+      }
+    ]
+  },
+  "rest api": {
+  "estimated_total_weeks": 3,
+  "levels": [
+    {
+      "level": 1,
+      "name": "API Fundamentals",
+      "duration_weeks": 1,
+      "topics": [
+        "What is REST",
+        "HTTP Methods",
+        "Status Codes",
+        "Headers",
+        "Statelessness"
+      ]
+    },
+    {
+      "level": 2,
+      "name": "API Design",
+      "duration_weeks": 1,
+      "topics": [
+        "RESTful Design",
+        "Request & Response",
+        "Pagination",
+        "Filtering",
+        "Error Handling"
+      ]
+    },
+    {
+      "level": 3,
+      "name": "Advanced APIs",
+      "duration_weeks": 1,
+      "topics": [
+        "Authentication",
+        "Authorization",
+        "JWT",
+        "OAuth2",
+        "Swagger / OpenAPI"
+      ]
+    }
+  ]
+}
+
+}

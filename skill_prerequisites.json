@@ -1,0 +1,8 @@
+{
+  "spring boot": ["java", "rest api", "sql"],
+  "django": ["python", "sql"],
+  "react": ["javascript", "html", "css"],
+  "node": ["javascript"],
+  "sql": [],
+  "git": []
+}
