@@ -1,1 +1,46 @@
-venv
+# -----------------------------
+# Python
+# -----------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+failure_analytics_log.csv
+failure_diagnosis_log.csv
+job_readiness_log.csv
+
+# Model files
+*.pkl
+*.pt
+*.bin
+*.h5
+
+# HuggingFace cache
+.huggingface/
+.cache/
+~/.cache/huggingface/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Coverage
+htmlcov/
+.coverage
