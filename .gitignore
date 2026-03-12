@@ -26,10 +26,10 @@ job_readiness_log.csv
 *.h5
 
 # HuggingFace cache
+hf_cache/
 .huggingface/
 .cache/
 ~/.cache/huggingface/
-
 # OS
 .DS_Store
 Thumbs.db

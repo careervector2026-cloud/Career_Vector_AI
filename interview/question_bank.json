@@ -1,0 +1,278 @@
+{
+  "concept": {
+
+    "java": [
+      {
+        "difficulty": "easy",
+        "question": "What is JVM?",
+        "expected_answer": "JVM is the Java Virtual Machine that executes Java bytecode.",
+        "keywords": ["jvm","bytecode"]
+      },
+      {
+        "difficulty": "medium",
+        "question": "Explain JVM memory model.",
+        "expected_answer": "JVM memory includes heap, stack, method area and metaspace.",
+        "keywords": ["heap","stack","jvm"]
+      },
+      {
+        "difficulty": "hard",
+        "question": "How does Java garbage collection work?",
+        "expected_answer": "Garbage collection automatically frees unused memory objects.",
+        "keywords": ["gc","memory","heap"]
+      }
+    ],
+
+    "spring boot": [
+      {
+        "difficulty": "easy",
+        "question": "What is Spring Boot?",
+        "expected_answer": "Spring Boot simplifies Spring application development using auto configuration.",
+        "keywords": ["spring","boot"]
+      },
+      {
+        "difficulty": "medium",
+        "question": "What is dependency injection in Spring Boot?",
+        "expected_answer": "Dependency injection allows objects to receive dependencies automatically.",
+        "keywords": ["ioc","bean","dependency"]
+      },
+      {
+        "difficulty": "hard",
+        "question": "What is Spring Boot auto configuration?",
+        "expected_answer": "Spring Boot automatically configures beans based on classpath dependencies.",
+        "keywords": ["auto","configuration","spring"]
+      }
+    ],
+
+    "rest api": [
+      {
+        "difficulty": "easy",
+        "question": "What is REST?",
+        "expected_answer": "REST is an architectural style for designing networked applications.",
+        "keywords": ["rest","api"]
+      },
+      {
+        "difficulty": "medium",
+        "question": "What is REST API idempotency?",
+        "expected_answer": "Idempotent operations return the same result when executed multiple times.",
+        "keywords": ["idempotent","http"]
+      },
+      {
+        "difficulty": "hard",
+        "question": "Explain REST API versioning strategies.",
+        "expected_answer": "APIs can be versioned using URL, headers, or query parameters.",
+        "keywords": ["version","api"]
+      }
+    ],
+
+    "database": [
+      {
+        "difficulty": "easy",
+        "question": "What is a relational database?",
+        "expected_answer": "A relational database stores data in tables with relationships.",
+        "keywords": ["table","relation"]
+      },
+      {
+        "difficulty": "medium",
+        "question": "What is database indexing?",
+        "expected_answer": "Indexes improve query performance by speeding up lookups.",
+        "keywords": ["index","query"]
+      },
+      {
+        "difficulty": "hard",
+        "question": "Explain database normalization.",
+        "expected_answer": "Normalization reduces redundancy by organizing tables into relations.",
+        "keywords": ["normalization","database"]
+      }
+    ],
+
+    "microservices": [
+      {
+        "difficulty": "easy",
+        "question": "What are microservices?",
+        "expected_answer": "Microservices split applications into small independent services.",
+        "keywords": ["microservices","services"]
+      },
+      {
+        "difficulty": "medium",
+        "question": "What are advantages of microservices architecture?",
+        "expected_answer": "Better scalability, independent deployment and modular development.",
+        "keywords": ["scalability","services"]
+      },
+      {
+        "difficulty": "hard",
+        "question": "What challenges exist in microservices architecture?",
+        "expected_answer": "Service communication, distributed transactions and monitoring.",
+        "keywords": ["distributed","communication"]
+      }
+    ],
+
+    "docker": [
+      {
+        "difficulty": "easy",
+        "question": "What is Docker?",
+        "expected_answer": "Docker is a platform for containerizing applications.",
+        "keywords": ["docker","container"]
+      },
+      {
+        "difficulty": "medium",
+        "question": "What is the difference between Docker image and container?",
+        "expected_answer": "Image is a blueprint, container is a running instance.",
+        "keywords": ["image","container"]
+      },
+      {
+        "difficulty": "hard",
+        "question": "Explain Docker networking.",
+        "expected_answer": "Docker networking allows containers to communicate via bridge or overlay networks.",
+        "keywords": ["network","docker"]
+      }
+    ],
+
+    "aws": [
+      {
+        "difficulty": "easy",
+        "question": "What is AWS?",
+        "expected_answer": "AWS is a cloud computing platform by Amazon.",
+        "keywords": ["cloud","aws"]
+      },
+      {
+        "difficulty": "medium",
+        "question": "What is AWS EC2?",
+        "expected_answer": "EC2 provides virtual servers in the cloud.",
+        "keywords": ["ec2","server"]
+      },
+      {
+        "difficulty": "hard",
+        "question": "Explain how AWS load balancing works.",
+        "expected_answer": "Load balancers distribute traffic across multiple servers.",
+        "keywords": ["load","balancer"]
+      }
+    ]
+  },
+
+  "coding": [
+    {
+      "difficulty": "easy",
+      "question": "What is a stack?",
+      "expected_answer": "Stack is a LIFO data structure.",
+      "keywords": ["stack","lifo"]
+    },
+    {
+      "difficulty": "medium",
+      "question": "Explain time complexity of quicksort.",
+      "expected_answer": "Average O(n log n), worst case O(n^2).",
+      "keywords": ["quicksort","complexity"]
+    },
+    {
+      "difficulty": "hard",
+      "question": "How does a hash table handle collisions?",
+      "expected_answer": "Collisions are handled using chaining or open addressing.",
+      "keywords": ["hash","collision"]
+    }
+  ],
+
+  "system_design": [
+    {
+      "difficulty": "easy",
+      "question": "What is load balancing?",
+      "expected_answer": "Load balancing distributes traffic across servers.",
+      "keywords": ["load","balancer"]
+    },
+    {
+      "difficulty": "medium",
+      "question": "Design a URL shortener service.",
+      "expected_answer": "Use hashing, DB storage, caching.",
+      "keywords": ["hash","database","cache"]
+    },
+    {
+      "difficulty": "hard",
+      "question": "How would you design a scalable REST API?",
+      "expected_answer": "Use stateless servers, load balancing and caching.",
+      "keywords": ["api","scalability"]
+    }
+  ],
+ "frontend": {
+ "react":[
+  {
+   "difficulty":"easy",
+   "question":"What is React?",
+   "expected_answer":"React is a JavaScript library for building user interfaces.",
+   "keywords":["react","ui"]
+  },
+  {
+   "difficulty":"medium",
+   "question":"What are React hooks?",
+   "expected_answer":"Hooks allow functional components to manage state and lifecycle.",
+   "keywords":["hooks","state"]
+  },
+  {
+   "difficulty":"hard",
+   "question":"Explain the virtual DOM in React.",
+   "expected_answer":"Virtual DOM is a lightweight copy of the DOM used to optimize rendering.",
+   "keywords":["virtual","dom"]
+  }
+ ]
+},"fullstack": {
+ "architecture":[
+  {
+   "difficulty":"easy",
+   "question":"What is the difference between frontend and backend?",
+   "expected_answer":"Frontend handles UI while backend manages business logic.",
+   "keywords":["frontend","backend"]
+  },
+  {
+   "difficulty":"medium",
+   "question":"How does a full stack application communicate between frontend and backend?",
+   "expected_answer":"Through APIs such as REST or GraphQL.",
+   "keywords":["api","communication"]
+  },
+  {
+   "difficulty":"hard",
+   "question":"Explain how authentication works in full stack applications.",
+   "expected_answer":"Typically via JWT tokens or session authentication.",
+   "keywords":["jwt","auth"]
+  }
+ ]
+},"machine_learning":{
+ "ml":[
+  {
+   "difficulty":"easy",
+   "question":"What is supervised learning?",
+   "expected_answer":"Learning from labeled training data.",
+   "keywords":["supervised","labels"]
+  },
+  {
+   "difficulty":"medium",
+   "question":"Explain overfitting in machine learning.",
+   "expected_answer":"Model learns noise instead of general patterns.",
+   "keywords":["overfitting","generalization"]
+  },
+  {
+   "difficulty":"hard",
+   "question":"Explain bias-variance tradeoff.",
+   "expected_answer":"Balance between model complexity and generalization.",
+   "keywords":["bias","variance"]
+  }
+ ]
+},"data_science":{
+ "statistics":[
+  {
+   "difficulty":"easy",
+   "question":"What is mean and median?",
+   "expected_answer":"Measures of central tendency.",
+   "keywords":["mean","median"]
+  },
+  {
+   "difficulty":"medium",
+   "question":"Explain hypothesis testing.",
+   "expected_answer":"Statistical method to validate assumptions.",
+   "keywords":["hypothesis","test"]
+  },
+  {
+   "difficulty":"hard",
+   "question":"Explain p-value in statistics.",
+   "expected_answer":"Probability of observing results under null hypothesis.",
+   "keywords":["pvalue","statistics"]
+  }
+ ]
+}
+}

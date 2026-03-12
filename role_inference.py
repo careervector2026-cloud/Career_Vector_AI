@@ -7,30 +7,31 @@ def infer_role_policy(jd_text: str) -> str:
     ]):
         return "resume_github_leetcode"
 
-    # 2️⃣ DSA / Competitive Programming
+    # 2️⃣ Frontend (must come BEFORE DSA check)
     if any(k in jd for k in [
-        "data structures", "algorithms", "dsa",
-        "competitive programming", "problem solving"
-    ]):
-        return "resume_leetcode"
-
-    # 3️⃣ Project-driven roles (GitHub)
-    if any(k in jd for k in [
-        # Backend
-        "spring boot", "django", "backend developer",
-        "microservices", "rest api",
-
-        # ML / Data
-        "machine learning", "data scientist",
-        "deep learning", "nlp",
-
-        # Frontend
-        "frontend", "react", "javascript",
-
-        # DevOps / Cloud
-        "devops", "ci/cd", "kubernetes", "docker", "cloud"
+        "frontend", "react", "angular", "vue"
     ]):
         return "resume_github"
 
-    # 4️⃣ Fallback
+    # 3️⃣ Backend / Project-driven
+    if any(k in jd for k in [
+        "spring boot", "django", "backend",
+        "microservices", "rest api"
+    ]):
+        return "resume_github"
+
+    # 4️⃣ ML / Data
+    if any(k in jd for k in [
+        "machine learning", "data scientist",
+        "deep learning", "nlp"
+    ]):
+        return "resume_github"
+
+    # 5️⃣ Pure DSA role (only if nothing else matched)
+    if any(k in jd for k in [
+        "competitive programming",
+        "coding interview focus"
+    ]):
+        return "resume_leetcode"
+
     return "resume_only"

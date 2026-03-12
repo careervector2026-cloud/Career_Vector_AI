@@ -1,4 +1,45 @@
 {
+  "system design": {
+  "estimated_total_weeks": 6,
+  "levels": [
+    {
+      "level": 1,
+      "name": "Foundations",
+      "duration_weeks": 2,
+      "topics": [
+        "Scalability Basics",
+        "Load Balancing",
+        "Caching",
+        "CAP Theorem",
+        "Horizontal vs Vertical Scaling"
+      ]
+    },
+    {
+      "level": 2,
+      "name": "Architecture Patterns",
+      "duration_weeks": 2,
+      "topics": [
+        "Microservices",
+        "Monolith vs Distributed",
+        "Event-Driven Architecture",
+        "API Gateway",
+        "Message Queues"
+      ]
+    },
+    {
+      "level": 3,
+      "name": "Advanced Design",
+      "duration_weeks": 2,
+      "topics": [
+        "Designing URL Shortener",
+        "Designing Instagram",
+        "Rate Limiting",
+        "Database Sharding",
+        "High Availability"
+      ]
+    }
+  ]
+},
   "spring boot": {
     "estimated_total_weeks": 8,
     "levels": [

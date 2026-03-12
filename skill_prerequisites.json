@@ -2,7 +2,16 @@
   "spring boot": ["java", "rest api", "sql"],
   "django": ["python", "sql"],
   "react": ["javascript", "html", "css"],
+  "angular": ["typescript", "html", "css"],
+  "vue": ["javascript", "html", "css"],
   "node": ["javascript"],
+  "typescript": ["javascript"],
+  "redux": ["react"],
+  "next.js": ["react"],
+  "rest api": [],
   "sql": [],
-  "git": []
+  "git": [],
+  "html": [],
+  "css": [],
+  "javascript": []
 }

@@ -2,12 +2,61 @@
   "java": ["java"],
   "spring boot": ["spring boot", "springboot"],
   "spring mvc": ["spring mvc"],
-  "rest api": ["rest api", "restful api"],
-  "sql": ["sql", "mysql", "postgresql"],
-  "docker": ["docker"],
-  "aws": ["aws", "ec2", "s3", "rds"],
-  "git": ["git", "github"],
+  "hibernate": ["hibernate"],
+  "jpa": ["jpa", "java persistence api"],
+
   "python": ["python"],
   "django": ["django"],
-  "react": ["react", "reactjs"]
+  "flask": ["flask"],
+  "fastapi": ["fastapi", "fast api"],
+
+  "javascript": ["javascript", "js", "es6", "es6+"],
+  "typescript": ["typescript", "ts"],
+
+  "react": ["react", "reactjs", "react.js"],
+  "redux": ["redux"],
+  "next.js": ["next.js", "nextjs"],
+  "angular": ["angular", "angularjs"],
+  "vue": ["vue", "vue.js", "vuejs"],
+
+  "node.js": ["node.js", "nodejs", "node"],
+  "express": ["express", "express.js", "expressjs"],
+
+  "mongodb": ["mongodb", "mongo db"],
+  "sql": ["sql"],
+  "mysql": ["mysql"],
+  "postgresql": ["postgresql", "postgres"],
+  "oracle": ["oracle db", "oracle database"],
+  "redis": ["redis"],
+  "firebase": ["firebase"],
+
+  "rest api": ["rest api", "restful api"],
+  "graphql": ["graphql"],
+
+  "docker": ["docker"],
+  "kubernetes": ["kubernetes", "k8s"],
+  "ci/cd": ["ci/cd", "ci cd", "continuous integration", "continuous deployment"],
+  "jenkins": ["jenkins"],
+  "github actions": ["github actions"],
+  "nginx": ["nginx"],
+
+  "aws": ["aws", "amazon web services", "ec2", "s3", "rds", "lambda"],
+  "azure": ["azure", "microsoft azure"],
+  "gcp": ["gcp", "google cloud", "google cloud platform"],
+
+  "git": ["git", "github", "gitlab", "bitbucket"],
+
+  "html": ["html", "html5"],
+  "css": ["css", "css3"],
+  "bootstrap": ["bootstrap"],
+  "tailwind": ["tailwind", "tailwind css"],
+
+  "microservices": ["microservices", "micro services"],
+  "system design": ["system design"],
+  "data structures": ["data structures", "dsa"],
+  "algorithms": ["algorithms"],
+
+  "unit testing": ["unit testing", "junit", "pytest"],
+  "integration testing": ["integration testing"],
+  "postman": ["postman"]
 }
