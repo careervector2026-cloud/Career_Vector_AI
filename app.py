@@ -430,25 +430,56 @@ from interview.interview_engine import generate_questions
 from interview.answer_analyzer import evaluate_interview
 from interview.github_repo_fetcher import fetch_github_repositories
 
+from resume_parser import parse_resume_from_url
+from app import extract_skills, resume_jd_match
+
 
 @app.post("/generate-interview-questions")
 async def generate_interview_questions(payload: dict):
 
-    missing_skills = payload.get("missing_skills", [])
-    matched_skills = payload.get("matched_skills", [])
-
-    github_url = payload.get("github_url")
-
-    github_score = payload.get("github_score", 0.0)
-    leetcode_score = payload.get("leetcode_score", 0.0)
-    readiness_score = payload.get("readiness_score", 0.0)
-
+    jd_text = payload.get("jd_text", "")
+    resume_url = payload.get("resume_url", "")
+    github_url = payload.get("github_url", "")
     n_questions = payload.get("n_questions", 10)
+
+    # -------------------------
+    # Resume Parsing
+    # -------------------------
+
+    resume_text = parse_resume_from_url(resume_url)
+
+    # -------------------------
+    # Resume–JD Matching
+    # -------------------------
+
+    match_result = resume_jd_match(resume_url, jd_text)
+
+    matched_skills = match_result["matched_skills"]
+    missing_skills = match_result["missing_skills"]
+
+    # -------------------------
+    # GitHub Analysis
+    # -------------------------
 
     github_data = {"repositories": []}
 
     if github_url:
-        github_data = await fetch_github_repositories(github_url)
+        try:
+            github_data = await fetch_github_repositories(github_url)
+        except Exception:
+            github_data = {"repositories": []}
+
+    # -------------------------
+    # Placeholder Scores
+    # -------------------------
+
+    github_score = 0.6
+    leetcode_score = 0.5
+    readiness_score = 0.6
+
+    # -------------------------
+    # Generate Questions
+    # -------------------------
 
     questions = generate_questions(
         missing_skills,
@@ -460,8 +491,11 @@ async def generate_interview_questions(payload: dict):
         n_questions
     )
 
-    return {"questions": questions}
-
+    return {
+        "matched_skills": matched_skills,
+        "missing_skills": missing_skills,
+        "questions": questions
+    }
 
 @app.post("/evaluate-interview")
 def evaluate_interview_api(payload: dict):
@@ -470,7 +504,22 @@ def evaluate_interview_api(payload: dict):
 
     result = evaluate_interview(answers)
 
-    return result
+    question_scores = result.get("question_scores", [])
+
+    # convert numpy floats safely
+    total = 0
+    for q in question_scores:
+        q["score"] = float(q["score"])
+        total += q["score"]
+
+    overall_score = 0.0
+    if question_scores:
+        overall_score = round(total / len(question_scores), 3)
+
+    return {
+        "question_scores": question_scores,
+        "overall_score": overall_score
+    }
 
 from interview.adaptive_interview_engine import AdaptiveInterview
 
