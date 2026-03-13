@@ -25,6 +25,7 @@ class AdaptiveInterview:
         self.current_index = 0
 
         self.question_pool = []
+        self.followup_pool = []
 
     # -------------------------------------------------
     # ROLE INFERENCE
@@ -46,7 +47,7 @@ class AdaptiveInterview:
         if any(x in jd for x in ["data scientist", "data science", "pandas", "statistics"]):
             return "data_science"
 
-        return "backend"
+        return "concept"
 
     # -------------------------------------------------
     # INITIAL PIPELINE
@@ -63,7 +64,6 @@ class AdaptiveInterview:
         self.matched_skills = match_result["matched_skills"]
         self.missing_skills = match_result["missing_skills"]
 
-        # GitHub skill scoring
         github_result = await analyze_github_async(
             self.github_url,
             set(jd_skills)
@@ -71,7 +71,6 @@ class AdaptiveInterview:
 
         self.github_score = github_result["score"]
 
-        # Fetch repositories separately for question generation
         if self.github_url:
             try:
                 self.github_data = await fetch_github_repositories(self.github_url)
@@ -108,21 +107,41 @@ class AdaptiveInterview:
 
         for skill in self.missing_skills + self.matched_skills:
 
+            skill = skill.lower()
+
             if skill in role_bank:
                 concept_questions.extend(role_bank[skill])
 
         github_questions = generate_github_questions(self.github_data, max_questions=4)
 
-        question_pool = (
-                concept_questions
-                + coding_questions
-                + system_questions
-                + github_questions
-        )
+        pool = concept_questions + coding_questions + system_questions + github_questions
 
-        random.shuffle(question_pool)
+        random.shuffle(pool)
 
-        return question_pool
+        return pool
+
+    # -------------------------------------------------
+    # FOLLOW-UP QUESTION DETECTION
+    # -------------------------------------------------
+
+    def detect_followup_questions(self, answer):
+
+        answer_lower = answer.lower()
+
+        followups = []
+
+        concept_bank = QUESTION_BANK.get("concept", {})
+
+        for skill, questions in concept_bank.items():
+
+            if skill in answer_lower:
+
+                for q in questions:
+
+                    if q not in self.asked:
+                        followups.append(q)
+
+        return followups
 
     # -------------------------------------------------
     # NEXT QUESTION
@@ -130,11 +149,9 @@ class AdaptiveInterview:
 
     def next_question(self):
 
-        # stop if required questions completed
         if self.current_index >= self.n_questions:
             return None
 
-        # remaining questions
         remaining = [
             q for q in self.question_pool
             if q not in self.asked
@@ -143,18 +160,13 @@ class AdaptiveInterview:
         if not remaining:
             return None
 
-        # difficulty filtered candidates
         candidates = [
             q for q in remaining
             if q.get("difficulty", "medium") == self.difficulty
         ]
 
-        # fallback to any remaining question
         if not candidates:
             candidates = remaining
-
-        if not candidates:
-            return None
 
         question = random.choice(candidates)
 
@@ -181,9 +193,17 @@ class AdaptiveInterview:
 
         score = float(result["question_scores"][0]["score"])
 
+        # adjust difficulty
         self.difficulty = adjust_difficulty(
             self.difficulty,
             score
         )
+
+        # detect follow-up questions
+        followups = self.detect_followup_questions(answer)
+
+        for q in followups:
+            if q not in self.question_pool:
+                self.question_pool.insert(0, q)
 
         return score

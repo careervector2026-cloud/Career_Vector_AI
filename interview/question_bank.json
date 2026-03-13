@@ -42,6 +42,312 @@
         "keywords": ["auto","configuration","spring"]
       }
     ],
+    "spring mvc":[
+      {
+      "difficulty":"easy",
+      "question":"What is Spring MVC?",
+      "expected_answer":"Spring MVC is a web framework that follows the Model View Controller architecture.",
+      "keywords":["mvc","controller","spring"]
+      },
+      {
+      "difficulty":"medium",
+      "question":"What is DispatcherServlet in Spring MVC?",
+      "expected_answer":"DispatcherServlet acts as the front controller that routes HTTP requests.",
+      "keywords":["dispatcher","servlet"]
+      },
+      {
+      "difficulty":"hard",
+      "question":"Explain request flow in Spring MVC.",
+      "expected_answer":"Request goes through DispatcherServlet, controller, service layer and view resolver.",
+      "keywords":["dispatcher","controller","flow"]
+      }
+    ],
+    "hibernate":[
+{
+"difficulty":"easy",
+"question":"What is Hibernate?",
+"expected_answer":"Hibernate is an ORM framework for mapping Java objects to database tables.",
+"keywords":["orm","hibernate"]
+},
+{
+"difficulty":"medium",
+"question":"What is Hibernate session?",
+"expected_answer":"Session represents a connection between the application and database.",
+"keywords":["session","database"]
+},
+{
+"difficulty":"hard",
+"question":"Explain lazy loading in Hibernate.",
+"expected_answer":"Lazy loading delays object initialization until required.",
+"keywords":["lazy","loading"]
+}
+],
+    "jpa":[
+{
+"difficulty":"easy",
+"question":"What is JPA?",
+"expected_answer":"JPA is a Java specification for object relational mapping.",
+"keywords":["jpa","orm"]
+},
+{
+"difficulty":"medium",
+"question":"What are JPA entities?",
+"expected_answer":"Entities are lightweight persistent domain objects mapped to tables.",
+"keywords":["entity","table"]
+},
+{
+"difficulty":"hard",
+"question":"Explain JPA entity lifecycle.",
+"expected_answer":"States include transient, managed, detached and removed.",
+"keywords":["lifecycle","entity"]
+}
+],
+    "python":[
+{
+"difficulty":"easy",
+"question":"What is Python?",
+"expected_answer":"Python is a high level interpreted programming language.",
+"keywords":["python","interpreted"]
+},
+{
+"difficulty":"medium",
+"question":"Explain Python decorators.",
+"expected_answer":"Decorators modify function behavior without changing its code.",
+"keywords":["decorator","function"]
+},
+{
+"difficulty":"hard",
+"question":"What is the Global Interpreter Lock?",
+"expected_answer":"GIL prevents multiple native threads executing Python bytecode simultaneously.",
+"keywords":["gil","thread"]
+}
+],
+    "python":[
+{
+"difficulty":"easy",
+"question":"What is Python?",
+"expected_answer":"Python is a high level interpreted programming language.",
+"keywords":["python","interpreted"]
+},
+{
+"difficulty":"medium",
+"question":"Explain Python decorators.",
+"expected_answer":"Decorators modify function behavior without changing its code.",
+"keywords":["decorator","function"]
+},
+{
+"difficulty":"hard",
+"question":"What is the Global Interpreter Lock?",
+"expected_answer":"GIL prevents multiple native threads executing Python bytecode simultaneously.",
+"keywords":["gil","thread"]
+}
+],
+    "django":[
+{
+"difficulty":"easy",
+"question":"What is Django?",
+"expected_answer":"Django is a high level Python web framework.",
+"keywords":["django","framework"]
+},
+{
+"difficulty":"medium",
+"question":"What is Django ORM?",
+"expected_answer":"Django ORM maps Python objects to database tables.",
+"keywords":["orm","database"]
+},
+{
+"difficulty":"hard",
+"question":"Explain Django middleware.",
+"expected_answer":"Middleware processes requests and responses before reaching the view.",
+"keywords":["middleware","request"]
+}
+],
+    "fastapi":[
+{
+"difficulty":"easy",
+"question":"What is FastAPI?",
+"expected_answer":"FastAPI is a high performance Python API framework.",
+"keywords":["fastapi","api"]
+},
+{
+"difficulty":"medium",
+"question":"What is Pydantic in FastAPI?",
+"expected_answer":"Pydantic validates request data using Python type hints.",
+"keywords":["pydantic","validation"]
+},
+{
+"difficulty":"hard",
+"question":"Explain async support in FastAPI.",
+"expected_answer":"FastAPI supports asynchronous programming using async and await.",
+"keywords":["async","await"]
+}
+],
+    "javascript":[
+      {
+        "difficulty":"easy",
+        "question":"What is JavaScript?",
+        "expected_answer":"JavaScript is a programming language used for web development.",
+        "keywords":["javascript"]
+      },
+      {
+        "difficulty":"medium",
+        "question":"Explain closures in JavaScript.",
+        "expected_answer":"Closures allow functions to access outer scope variables.",
+        "keywords":["closure","scope"]
+      },
+      {
+        "difficulty":"hard",
+        "question":"Explain event loop in JavaScript.",
+        "expected_answer":"Event loop handles asynchronous callbacks in JavaScript runtime.",
+        "keywords":["event","loop"]
+      }
+    ],
+
+    "typescript":[
+      {
+        "difficulty":"easy",
+        "question":"What is TypeScript?",
+        "expected_answer":"TypeScript is a statically typed superset of JavaScript.",
+        "keywords":["typescript"]
+      },
+      {
+        "difficulty":"medium",
+        "question":"What are TypeScript interfaces?",
+        "expected_answer":"Interfaces define structure of objects.",
+        "keywords":["interface"]
+      },
+      {
+        "difficulty":"hard",
+        "question":"Explain generics in TypeScript.",
+        "expected_answer":"Generics allow reusable type-safe components.",
+        "keywords":["generics"]
+      }
+    ],
+
+    "react":[
+      {
+        "difficulty":"easy",
+        "question":"What is React?",
+        "expected_answer":"React is a JavaScript library for building UI.",
+        "keywords":["react","ui"]
+      },
+      {
+        "difficulty":"medium",
+        "question":"What are React hooks?",
+        "expected_answer":"Hooks allow functional components to manage state.",
+        "keywords":["hooks"]
+      },
+      {
+        "difficulty":"hard",
+        "question":"Explain virtual DOM in React.",
+        "expected_answer":"Virtual DOM improves rendering performance.",
+        "keywords":["dom","virtual"]
+      }
+    ],
+
+    "node.js":[
+{
+"difficulty":"easy",
+"question":"What is Node.js?",
+"expected_answer":"Node.js is a JavaScript runtime built on the V8 engine.",
+"keywords":["node","javascript"]
+},
+{
+"difficulty":"medium",
+"question":"What is the event loop in Node.js?",
+"expected_answer":"Event loop handles asynchronous callbacks.",
+"keywords":["event","loop"]
+},
+{
+"difficulty":"hard",
+"question":"Explain non blocking I/O in Node.js.",
+"expected_answer":"Non blocking I/O allows multiple requests without waiting for operations.",
+"keywords":["non blocking","io"]
+}
+],
+    "express":[
+{
+"difficulty":"easy",
+"question":"What is Express.js?",
+"expected_answer":"Express is a minimal web framework for Node.js.",
+"keywords":["express","node"]
+},
+{
+"difficulty":"medium",
+"question":"What are Express middlewares?",
+"expected_answer":"Middlewares process request and response objects.",
+"keywords":["middleware","express"]
+},
+{
+"difficulty":"hard",
+"question":"Explain error handling middleware in Express.",
+"expected_answer":"Special middleware handles errors using four parameters.",
+"keywords":["error","middleware"]
+}
+],
+    "mongodb":[
+{
+"difficulty":"easy",
+"question":"What is MongoDB?",
+"expected_answer":"MongoDB is a NoSQL document database.",
+"keywords":["nosql","document"]
+},
+{
+"difficulty":"medium",
+"question":"What is a MongoDB collection?",
+"expected_answer":"Collection is a group of MongoDB documents.",
+"keywords":["collection","documents"]
+},
+{
+"difficulty":"hard",
+"question":"Explain MongoDB aggregation pipeline.",
+"expected_answer":"Aggregation processes data using multiple pipeline stages.",
+"keywords":["aggregation","pipeline"]
+}
+],
+    "kubernetes":[
+{
+"difficulty":"easy",
+"question":"What is Kubernetes?",
+"expected_answer":"Kubernetes is a container orchestration platform.",
+"keywords":["kubernetes","containers"]
+},
+{
+"difficulty":"medium",
+"question":"What is a Kubernetes pod?",
+"expected_answer":"Pod is the smallest deployable unit in Kubernetes.",
+"keywords":["pod","container"]
+},
+{
+"difficulty":"hard",
+"question":"Explain Kubernetes service discovery.",
+"expected_answer":"Services expose pods using DNS or load balancing.",
+"keywords":["service","dns"]
+}
+],
+
+    "ci/cd":[
+{
+"difficulty":"easy",
+"question":"What is CI/CD?",
+"expected_answer":"CI/CD automates code integration and deployment.",
+"keywords":["ci","cd"]
+},
+{
+"difficulty":"medium",
+"question":"What is continuous integration?",
+"expected_answer":"CI merges code changes frequently with automated tests.",
+"keywords":["integration","tests"]
+},
+{
+"difficulty":"hard",
+"question":"Explain blue green deployment.",
+"expected_answer":"Blue green deployment uses two environments for safe releases.",
+"keywords":["deployment","blue green"]
+}
+],
+
+
 
     "rest api": [
       {
@@ -145,6 +451,26 @@
         "question": "Explain how AWS load balancing works.",
         "expected_answer": "Load balancers distribute traffic across multiple servers.",
         "keywords": ["load","balancer"]
+      }
+    ],
+    "git":[
+      {
+        "difficulty":"easy",
+        "question":"What is Git?",
+        "expected_answer":"Git is a distributed version control system.",
+        "keywords":["git","version"]
+      },
+      {
+        "difficulty":"medium",
+        "question":"What is Git branching?",
+        "expected_answer":"Branches allow parallel development.",
+        "keywords":["branch"]
+      },
+      {
+        "difficulty":"hard",
+        "question":"Explain Git rebase.",
+        "expected_answer":"Rebase rewrites commit history.",
+        "keywords":["rebase"]
       }
     ]
   },
