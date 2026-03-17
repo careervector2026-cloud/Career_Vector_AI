@@ -1,6 +1,6 @@
 # placement_probability.py
 
-from placement_probability_logger import log_placement_probability_sample
+from loggers.placement_probability_logger import log_placement_probability_sample
 
 
 # -------------------------------------------------

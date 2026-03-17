@@ -1,5 +1,5 @@
 from typing import Dict, List
-from policy_config import ROLE_POLICIES
+from config.policy_config import ROLE_POLICIES
 
 
 def generate_failure_diagnosis(

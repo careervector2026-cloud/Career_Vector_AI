@@ -5,11 +5,32 @@ from interview.interview_engine import QUESTION_BANK
 from interview.github_question_generator import generate_github_questions
 from interview.github_repo_fetcher import fetch_github_repositories
 
-from resume_parser import parse_resume_from_url
-from app import extract_skills, resume_jd_match
-from github_analyzer import analyze_github_async
+from analyzers.resume_parser import parse_resume_from_url
+from analyzers.matcher import extract_skills, resume_jd_match
+from analyzers.github_analyzer import analyze_github_async
 from interview.answer_analyzer import evaluate_interview
 
+
+# -------------------------------------------------
+# SKILL GRAPH (PROGRESSION PATHS)
+# -------------------------------------------------
+
+SKILL_GRAPH = {
+
+    "java": ["spring boot", "microservices", "system design"],
+    "spring boot": ["microservices", "docker"],
+    "python": ["fastapi", "django", "system design"],
+    "react": ["redux", "next.js"],
+    "node.js": ["express", "microservices"],
+    "docker": ["kubernetes", "ci/cd"],
+    "aws": ["microservices", "system design"],
+    "data structures": ["algorithms", "system design"]
+}
+
+
+# -------------------------------------------------
+# ADAPTIVE INTERVIEW CLASS
+# -------------------------------------------------
 
 class AdaptiveInterview:
 
@@ -25,7 +46,7 @@ class AdaptiveInterview:
         self.current_index = 0
 
         self.question_pool = []
-        self.followup_pool = []
+        self.skill_progression = []
 
     # -------------------------------------------------
     # ROLE INFERENCE
@@ -44,10 +65,36 @@ class AdaptiveInterview:
         if any(x in jd for x in ["machine learning", "ml", "deep learning"]):
             return "machine_learning"
 
-        if any(x in jd for x in ["data scientist", "data science", "pandas", "statistics"]):
+        if any(x in jd for x in ["data scientist", "data science"]):
             return "data_science"
 
         return "concept"
+
+    # -------------------------------------------------
+    # BUILD SKILL PROGRESSION
+    # -------------------------------------------------
+
+    def build_skill_progression(self, skills):
+
+        progression = []
+
+        for skill in skills:
+
+            progression.append(skill)
+
+            if skill in SKILL_GRAPH:
+                progression.extend(SKILL_GRAPH[skill])
+
+        # remove duplicates but keep order
+        seen = set()
+        ordered = []
+
+        for s in progression:
+            if s not in seen:
+                ordered.append(s)
+                seen.add(s)
+
+        return ordered
 
     # -------------------------------------------------
     # INITIAL PIPELINE
@@ -79,7 +126,7 @@ class AdaptiveInterview:
         else:
             self.github_data = {}
 
-        # placeholder scores
+        # placeholder signals
         leetcode_score = 0.5
         readiness_score = 0.6
 
@@ -88,6 +135,10 @@ class AdaptiveInterview:
             leetcode_score,
             readiness_score
         )
+
+        # build skill progression graph
+        base_skills = list(set(self.matched_skills + self.missing_skills))
+        self.skill_progression = self.build_skill_progression(base_skills)
 
         self.question_pool = self._build_question_pool()
 
@@ -105,36 +156,41 @@ class AdaptiveInterview:
         coding_questions = QUESTION_BANK.get("coding", [])
         system_questions = QUESTION_BANK.get("system_design", [])
 
-        for skill in self.missing_skills + self.matched_skills:
-
-            skill = skill.lower()
+        # skill progression based questions
+        for skill in self.skill_progression:
 
             if skill in role_bank:
                 concept_questions.extend(role_bank[skill])
 
+        # github project questions
         github_questions = generate_github_questions(self.github_data, max_questions=4)
 
-        pool = concept_questions + coding_questions + system_questions + github_questions
+        question_pool = (
+                concept_questions
+                + coding_questions
+                + system_questions
+                + github_questions
+        )
 
-        random.shuffle(pool)
+        random.shuffle(question_pool)
 
-        return pool
+        return question_pool
 
     # -------------------------------------------------
-    # FOLLOW-UP QUESTION DETECTION
+    # FOLLOW-UP QUESTION GENERATOR
     # -------------------------------------------------
 
-    def detect_followup_questions(self, answer):
+    def detect_followup(self, answer):
 
-        answer_lower = answer.lower()
-
-        followups = []
+        answer = answer.lower()
 
         concept_bank = QUESTION_BANK.get("concept", {})
 
+        followups = []
+
         for skill, questions in concept_bank.items():
 
-            if skill in answer_lower:
+            if skill in answer:
 
                 for q in questions:
 
@@ -160,6 +216,7 @@ class AdaptiveInterview:
         if not remaining:
             return None
 
+        # difficulty filter
         candidates = [
             q for q in remaining
             if q.get("difficulty", "medium") == self.difficulty
@@ -193,16 +250,17 @@ class AdaptiveInterview:
 
         score = float(result["question_scores"][0]["score"])
 
-        # adjust difficulty
+        # adjust difficulty dynamically
         self.difficulty = adjust_difficulty(
             self.difficulty,
             score
         )
 
-        # detect follow-up questions
-        followups = self.detect_followup_questions(answer)
+        # generate follow-up questions
+        followups = self.detect_followup(answer)
 
         for q in followups:
+
             if q not in self.question_pool:
                 self.question_pool.insert(0, q)
 

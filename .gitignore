@@ -15,9 +15,9 @@ env/
 
 # Logs
 *.log
-failure_analytics_log.csv
+logs/failure_analytics_log.csv
 failure_diagnosis_log.csv
-job_readiness_log.csv
+logs/job_readiness_log.csv
 
 # Model files
 *.pkl

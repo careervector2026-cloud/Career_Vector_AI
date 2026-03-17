@@ -6,7 +6,7 @@ from functools import lru_cache
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from resume_parser import parse_resume_from_url
+from analyzers.resume_parser import parse_resume_from_url
 
 # -------------------------------------------------
 # OPTIONAL FAISS ACCELERATION
@@ -44,10 +44,13 @@ def get_model():
 # LOAD SKILLS
 # -------------------------------------------------
 
-with open("skills.json", encoding="utf-8") as f:
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+skills_file = BASE_DIR / "data" / "skills.json"
+
+with open(skills_file, encoding="utf-8") as f:
     SKILLS = json.load(f)
-
-
 # -------------------------------------------------
 # STACK EXPANSION LAYER
 # -------------------------------------------------
@@ -143,9 +146,12 @@ def get_resume_embedding(resume_text: str):
     if model is None:
         return None
 
-    embedding = model.encode(resume_text)
-    return np.array(embedding).astype("float32")
+    embedding = model.encode(
+        resume_text,
+        normalize_embeddings=True
+    )
 
+    return np.array(embedding).astype("float32")
 
 @lru_cache(maxsize=512)
 def get_jd_embedding(jd_text: str):
@@ -155,9 +161,12 @@ def get_jd_embedding(jd_text: str):
     if model is None:
         return None
 
-    embedding = model.encode(jd_text)
-    return np.array(embedding).astype("float32")
+    embedding = model.encode(
+        jd_text,
+        normalize_embeddings=True
+    )
 
+    return np.array(embedding).astype("float32")
 
 # -------------------------------------------------
 # FAISS SEMANTIC SIMILARITY
@@ -170,31 +179,12 @@ def compute_semantic_similarity(resume_embedding, jd_embedding):
 
     try:
 
-        if FAISS_AVAILABLE:
+        similarity = np.dot(resume_embedding, jd_embedding)
 
-            dim = resume_embedding.shape[0]
-
-            index = faiss.IndexFlatIP(dim)
-
-            index.add(resume_embedding.reshape(1, -1))
-
-            D, I = index.search(jd_embedding.reshape(1, -1), 1)
-
-            return float(D[0][0])
-
-        else:
-
-            return float(
-                cosine_similarity(
-                    resume_embedding.reshape(1, -1),
-                    jd_embedding.reshape(1, -1)
-                )[0][0]
-            )
+        return float(similarity)
 
     except Exception:
         return 0.0
-
-
 # -------------------------------------------------
 # MAIN RESUME–JD MATCH FUNCTION
 # -------------------------------------------------
@@ -232,6 +222,7 @@ def resume_jd_match(resume_url: str, jd_text: str):
     # -------------------------------------------------
 
     weights = compute_jd_skill_weights(jd_text, jd_skills)
+
 
     total_weight = sum(weights.values())
     matched_weight = sum(weights[s] for s in matched)

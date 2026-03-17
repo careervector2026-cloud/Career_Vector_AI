@@ -1,8 +1,8 @@
 import numpy as np
 from functools import lru_cache
 
-from matcher import get_model
-from resume_parser import parse_resume_from_url
+from analyzers.matcher import get_model
+from analyzers.resume_parser import parse_resume_from_url
 
 try:
     import faiss

@@ -1,6 +1,6 @@
 # job_readiness.py
 
-from job_readiness_logger import log_job_readiness_sample
+from loggers.job_readiness_logger import log_job_readiness_sample
 
 # -------------------------------------------------
 # GLOBAL SWITCH (KEEP FALSE UNTIL MODEL IS TRAINED)
@@ -81,7 +81,7 @@ def compute_job_readiness_score(analysis: dict) -> dict:
     # -----------------------------
     if USE_ML:
         try:
-            from job_readiness_ml import predict_job_readiness_ml
+            from intelligence.job_readiness_ml import predict_job_readiness_ml
             final_score = predict_job_readiness_ml(breakdown)
             method = "ml"
         except Exception:

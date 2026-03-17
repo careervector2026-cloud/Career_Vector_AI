@@ -2,7 +2,11 @@ import csv
 import os
 from datetime import datetime
 
-LOG_FILE = "failure_diagnosis_log.csv"
+from pathlib import Path
+import csv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+LOG_FILE = BASE_DIR / "logs" / "failure_diagnosis_log.csv"
 
 FIELDNAMES = [
     "timestamp",

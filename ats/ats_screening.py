@@ -1,6 +1,6 @@
 # ats_screening.py
 
-from matcher import get_model
+from analyzers.matcher import get_model
 from sklearn.metrics.pairwise import cosine_similarity
 from functools import lru_cache
 

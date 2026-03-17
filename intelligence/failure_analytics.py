@@ -2,7 +2,7 @@ import csv
 import os
 from collections import Counter
 
-FILE = "failure_analytics_log.csv"
+FILE = "../logs/failure_analytics_log.csv"
 
 
 def generate_failure_analytics(decision_filter: str = "ALL"):

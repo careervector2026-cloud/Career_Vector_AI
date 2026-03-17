@@ -1,21 +1,12 @@
+#app.py
 import asyncio
-
 from fastapi import FastAPI, Request, HTTPException
-from urllib.parse import parse_qs
-
-from ats_resume_fixer import generate_ats_fix_suggestions
-from ats_screening import compute_ats_screening
-from interview.github_question_generator import generate_github_questions
-from interview.github_repo_fetcher import fetch_github_repositories
-from learning_path import generate_learning_path
-from failure_analytics import generate_failure_analytics
+from ats.ats_resume_fixer import generate_ats_fix_suggestions
+from ats.ats_screening import compute_ats_screening
+from intelligence.failure_analytics import generate_failure_analytics
 from fastapi import Query
-
-from matcher import resume_jd_match, extract_skills
-from orchestrator import build_jd_context
-import json
-
-from orchestrator import (
+from pipeline.orchestrator import build_jd_context
+from pipeline.orchestrator import (
     analyze_candidate_async,
     rank_candidates_against_jd_async,
     match_student_against_multiple_jds_async,
@@ -23,10 +14,19 @@ from orchestrator import (
     recommend_career_paths,
     generate_market_demand_heatmap
 )
-from talent_search import search_talent_pool
+from chatbot.student_chatbot import student_chatbot_router
+from intelligence.talent_search import search_talent_pool
+from intelligence.learning_path import generate_learning_path
+from interview.interview_engine import generate_questions
+from interview.answer_analyzer import evaluate_interview
+from interview.github_repo_fetcher import fetch_github_repositories
+from analyzers.resume_parser import parse_resume_from_url
+from analyzers.matcher import resume_jd_match
+from interview.adaptive_interview_engine import AdaptiveInterview
 
 app = FastAPI()
 
+interview_sessions = {}
 
 # -------------------------------------------------
 # ANALYZE SINGLE CANDIDATE
@@ -103,6 +103,10 @@ async def match_student_jds(
 
         student = data.get("student_profile")
         jds = data.get("jds")
+
+        # Convert JD strings to dict format
+        if jds and isinstance(jds[0], str):
+            jds = [{"job_description": jd} for jd in jds]
 
         if not student or not jds:
             raise HTTPException(
@@ -231,11 +235,17 @@ async def failure_diagnosis(request: Request):
         "threshold": result["threshold"],
         "failure_diagnosis": result.get("failure_diagnosis")
     }
+
+#--------------------------------------------------
+#   FAILURE ANALYTICS
+#--------------------------------------------------
+@app.get("/failure-analytics")
+def failure_analytics(decision_filter: str = "ALL"):
+    return generate_failure_analytics(decision_filter)
+
 # -------------------------------------------------
 # 🆕 LEARNING PATH FROM JD (FIXED)
 # -------------------------------------------------
-from learning_path import generate_learning_path
-
 def infer_target_role_from_jd(jd_text: str) -> str:
     jd = jd_text.lower()
 
@@ -296,6 +306,7 @@ def infer_target_role_from_jd(jd_text: str) -> str:
 
     # Choose highest score
     return max(role_scores, key=role_scores.get)
+
 @app.post("/learning-path")
 async def learning_path_from_jd(request: Request):
     data = await request.json()
@@ -339,7 +350,9 @@ async def learning_path_from_jd(request: Request):
 
     return roadmap
 
-
+#-------------------------------------------------------------
+#    ATS CHECKING
+#-------------------------------------------------------------
 @app.post("/ats-check")
 async def ats_check(request: Request):
 
@@ -384,6 +397,9 @@ async def ats_check(request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+#----------------------------------------------------------
+#   TALENT SEARCH
+#----------------------------------------------------------
 @app.post("/talent-search")
 async def talent_search(request: Request):
 
@@ -422,17 +438,9 @@ async def talent_search(request: Request):
             detail=str(e)
         )
 
-@app.get("/failure-analytics")
-def failure_analytics(decision_filter: str = "ALL"):
-    return generate_failure_analytics(decision_filter)
-
-from interview.interview_engine import generate_questions
-from interview.answer_analyzer import evaluate_interview
-from interview.github_repo_fetcher import fetch_github_repositories
-
-from resume_parser import parse_resume_from_url
-from app import extract_skills, resume_jd_match
-
+#----------------------------------------------------------
+#   GENERATIVE INTERVIEW QUESTIONS
+#----------------------------------------------------------
 
 @app.post("/generate-interview-questions")
 async def generate_interview_questions(payload: dict):
@@ -497,6 +505,9 @@ async def generate_interview_questions(payload: dict):
         "questions": questions
     }
 
+#----------------------------------------------------------------
+#   EVALUATING ANSWERS
+#----------------------------------------------------------------
 @app.post("/evaluate-interview")
 def evaluate_interview_api(payload: dict):
 
@@ -521,10 +532,9 @@ def evaluate_interview_api(payload: dict):
         "overall_score": overall_score
     }
 
-from interview.adaptive_interview_engine import AdaptiveInterview
-
-interview_sessions = {}
-
+# --------------------------------------------------------
+#     ADAPTIVE INTERVIEW STARTER
+# --------------------------------------------------------
 
 @app.post("/start-adaptive-interview")
 async def start_adaptive_interview(payload: dict):
@@ -545,6 +555,10 @@ async def start_adaptive_interview(payload: dict):
 
     return {"question": question}
 
+# --------------------------------------------------------
+#     ADAPTIVE INTERVIEW EVALUATER
+# --------------------------------------------------------
+
 @app.post("/adaptive-interview-answer")
 def adaptive_answer(payload: dict):
 
@@ -564,3 +578,33 @@ def adaptive_answer(payload: dict):
         "score": score,
         "next_question": next_q
     }
+
+@app.post("/student-chatbot")
+async def student_chatbot(request: Request):
+
+    data = await request.json()
+
+    query = data.get("query")
+    resume_url = data.get("resume_url")
+    job_description = data.get("job_description")
+    github_url = data.get("github_url")
+    leetcode_username = data.get("leetcode_username")
+    jds=data.get("jds")
+
+    if not query or not resume_url:
+
+        raise HTTPException(
+            status_code=422,
+            detail="query and resume_url required"
+        )
+
+    result = await student_chatbot_router(
+        query=query,
+        resume_url=resume_url,
+        job_description=job_description,
+        github_url=github_url,
+        leetcode_username=leetcode_username,
+        jds=jds
+    )
+
+    return result

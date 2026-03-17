@@ -1,7 +1,7 @@
 # learning_progress.py
 import json
 
-FILE = "learning_progress.json"
+FILE = "data/learning_progress.json"
 
 def load_progress():
     try:

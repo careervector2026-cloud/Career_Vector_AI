@@ -2,6 +2,7 @@ import requests
 import tempfile
 import os
 import re
+from functools import lru_cache
 from pdfminer.high_level import extract_text
 from docx import Document
 
@@ -30,23 +31,12 @@ def clean_text(text: str) -> str:
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
+@lru_cache(maxsize=256)
 def parse_resume_from_url(url: str) -> str:
     local_path = download_file(url)
-    raw = extract_text_from_file(local_path)
-    return clean_text(raw)
-#
-# def parse_resume_from_url(url: str) -> str:
-#     local_path = download_file(url)
-#     raw = extract_text_from_file(local_path)
-#
-#     print("\n========== RAW EXTRACTED TEXT ==========\n")
-#     print(raw)
-#     print("\n========== END RAW TEXT ==========\n")
-#
-#     cleaned = clean_text(raw)
-#
-#     print("\n========== CLEANED TEXT ==========\n")
-#     print(cleaned)
-#     print("\n========== END CLEANED TEXT ==========\n")
-#
-#     return cleaned
+    try:
+        raw = extract_text_from_file(local_path)
+        return clean_text(raw)
+    finally:
+        if os.path.exists(local_path):
+            os.remove(local_path)

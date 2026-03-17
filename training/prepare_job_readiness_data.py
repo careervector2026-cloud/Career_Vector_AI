@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-df = pd.read_csv("job_readiness_log.csv")
+df = pd.read_csv("../logs/job_readiness_log.csv")
 
 filtered = df[
     ((df["status"] == "shortlist") & (df["job_readiness"] >= 75)) |

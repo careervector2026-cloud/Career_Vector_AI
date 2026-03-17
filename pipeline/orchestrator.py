@@ -1,17 +1,16 @@
+#orchestrator.py
 import asyncio
 from typing import List, Dict
 from collections import Counter
 
-from matcher import resume_jd_match, extract_skills
-from github_analyzer import analyze_github_async
-from leetcode_analyzer import analyze_leetcode_async
-from role_inference import infer_role_policy
-from job_readiness import compute_job_readiness_score
-from failure_diagnosis import generate_failure_diagnosis
-from failure_analytics_logger import log_failure_analytics
-from placement_probability import compute_placement_probability
-from ats_screening import compute_ats_screening
-
+from analyzers.matcher import (resume_jd_match, extract_skills)
+from analyzers.github_analyzer import analyze_github_async
+from analyzers.leetcode_analyzer import analyze_leetcode_async
+from intelligence.role_inference import infer_role_policy
+from intelligence.job_readiness import compute_job_readiness_score
+from intelligence.failure_diagnosis import generate_failure_diagnosis
+from loggers.failure_analytics_logger import log_failure_analytics
+from intelligence.placement_probability import compute_placement_probability
 
 # -------------------------------------------------
 # GLOBAL CONCURRENCY LIMIT
@@ -21,7 +20,7 @@ analysis_semaphore = asyncio.Semaphore(MAX_CONCURRENT_ANALYSIS)
 
 async def build_jd_context(jd_text: str):
 
-    from matcher import extract_skills, get_jd_embedding
+    from analyzers.matcher import extract_skills, get_jd_embedding
 
     jd_text_lower = jd_text.lower()
 
@@ -96,7 +95,7 @@ async def analyze_candidate_async(
     role_level = infer_role_level(jd_text)
 
     # -------------------------------------------------
-    # Resume-JD Matching (FAISS used internally)
+    # Resume-JD Matching
     # -------------------------------------------------
 
     resume_jd = await asyncio.to_thread(
@@ -105,9 +104,108 @@ async def analyze_candidate_async(
         jd_text
     )
 
+    # -------------------------------------------------
+    # Market-aware skill weight adjustment
+    # -------------------------------------------------
+
+    try:
+
+        heatmap = await generate_market_demand_heatmap([jd_text])
+
+        demand_map = {
+            item["skill"]: item["demand_score"]
+            for item in heatmap
+        }
+
+        adjusted = {}
+
+        for skill, weight in resume_jd["jd_skill_weights"].items():
+
+            demand = demand_map.get(skill, 0.5)
+
+            adjusted[skill] = round(weight * (1 + demand), 3)
+
+        resume_jd["jd_skill_weights"] = adjusted
+
+    except Exception:
+        pass
+
     resume_score = resume_jd["final_match_score"]
 
     signals_used = ["resume_jd"]
+
+    threshold = ROLE_LEVEL_THRESHOLDS[role_level][role_policy]
+
+    # -------------------------------------------------
+    # EARLY RESUME FILTER (performance optimization)
+    # -------------------------------------------------
+
+    if resume_score < (threshold * 0.5):
+
+        final_score = round(resume_score, 2)
+
+        status = "reject"
+        reason = "Below role-level threshold"
+
+        github_result = {"score": 0.0, "evidence": []}
+        leetcode_result = {"score": 0.0}
+
+        job_readiness = compute_job_readiness_score({
+            "resume_jd": resume_jd,
+            "github": github_result,
+            "leetcode": leetcode_result,
+            "role_level": role_level
+        })
+
+        placement_probability = compute_placement_probability({
+            "resume_jd": resume_jd,
+            "github": github_result,
+            "leetcode": leetcode_result,
+            "job_readiness": job_readiness,
+            "final_score": final_score,
+            "threshold": threshold,
+            "role_policy": role_policy,
+            "role_name": role_policy.replace("_", " "),
+            "status": status
+        })
+
+        response = {
+            "final_score": final_score,
+            "status": status,
+            "reason": reason,
+            "threshold": threshold,
+            "role_policy": role_policy,
+            "role_level": role_level,
+            "signals_used": signals_used,
+            "resume_jd": resume_jd,
+            "github": github_result,
+            "leetcode": leetcode_result,
+            "job_readiness": job_readiness,
+            "placement_probability": placement_probability
+        }
+
+        diagnosis = generate_failure_diagnosis(
+            final_score=final_score,
+            threshold=threshold,
+            resume_jd=resume_jd,
+            github=github_result,
+            leetcode=leetcode_result,
+            role_policy=role_policy,
+            role_level=role_level
+        )
+
+        response["failure_diagnosis"] = diagnosis
+
+        log_failure_analytics(
+            decision_stage=status,
+            role_level=role_level,
+            role_policy=role_policy,
+            primary_reasons=diagnosis.get("primary_reasons", []),
+            secondary_reasons=diagnosis.get("secondary_reasons", []),
+            missing_skills=resume_jd.get("missing_skills", [])
+        )
+
+        return response
 
     # -------------------------------------------------
     # External Signals
@@ -183,8 +281,6 @@ async def analyze_candidate_async(
         signals_used.extend(["github", "leetcode"])
 
     final_score = round(final_score, 2)
-
-    threshold = ROLE_LEVEL_THRESHOLDS[role_level][role_policy]
 
     # -------------------------------------------------
     # Final Decision

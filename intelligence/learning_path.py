@@ -1,11 +1,8 @@
 # learning_path.py
 
-import math
-from collections import defaultdict
-
-from learning_path_resources import load_resources
-from skill_roadmaps_loader import load_skill_roadmaps
-from skill_prerequisites_loader import load_skill_prerequisites
+from intelligence.learning_path_resources import load_resources
+from config.skill_roadmaps_loader import load_skill_roadmaps
+from config.skill_prerequisites_loader import load_skill_prerequisites
 from learning_progress import load_progress
 
 

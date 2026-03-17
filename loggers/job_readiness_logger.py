@@ -3,8 +3,11 @@
 import csv
 import os
 
-FILE = "job_readiness_log.csv"
+from pathlib import Path
+import csv
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+FILE = BASE_DIR / "logs" / "job_readiness_log.csv"
 FIELDS = [
     "resume_jd",
     "skill_coverage",

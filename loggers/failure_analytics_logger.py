@@ -1,8 +1,12 @@
-import csv
+
 import os
 from datetime import datetime
 
-FILE = "failure_analytics_log.csv"
+from pathlib import Path
+import csv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+FILE = BASE_DIR / "logs" / "failure_analytics_log.csv"
 
 
 def log_failure_analytics(

@@ -1,12 +1,14 @@
 # placement_probability_logger.py
 
-import csv
+
 import os
 from datetime import datetime
 
-LOG_FILE = "placement_probability_log.csv"
+from pathlib import Path
+import csv
 
-
+BASE_DIR = Path(__file__).resolve().parent.parent
+LOG_FILE = BASE_DIR / "logs" / "placement_probability_log.csv"
 def log_placement_probability_sample(breakdown: dict, probability: float, status: str):
 
     file_exists = os.path.isfile(LOG_FILE)
