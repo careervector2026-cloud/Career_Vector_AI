@@ -1,16 +1,8 @@
 # job_readiness.py
 
-from loggers.job_readiness_logger import log_job_readiness_sample
-
-# -------------------------------------------------
-# GLOBAL SWITCH (KEEP FALSE UNTIL MODEL IS TRAINED)
-# -------------------------------------------------
 USE_ML = False
 
 
-# -------------------------------------------------
-# UTILITIES
-# -------------------------------------------------
 def normalize_0_100(x: float) -> float:
     return round(max(min(x * 100, 100), 0), 2)
 
@@ -23,17 +15,8 @@ def experience_alignment_score(role_level: str) -> int:
     }.get(role_level, 50)
 
 
-# -------------------------------------------------
-# CORE JOB READINESS (HYBRID)
-# -------------------------------------------------
 def compute_job_readiness_score(analysis: dict) -> dict:
-    """
-    analysis = output of analyze_candidate_async()
-    """
 
-    # -----------------------------
-    # FEATURE EXTRACTION (0–100)
-    # -----------------------------
     resume_jd_score = normalize_0_100(
         analysis["resume_jd"]["final_match_score"]
     )
@@ -64,9 +47,6 @@ def compute_job_readiness_score(analysis: dict) -> dict:
         "leetcode": leetcode_score
     }
 
-    # -----------------------------
-    # DETERMINISTIC SCORE
-    # -----------------------------
     deterministic_score = round(
         0.30 * resume_jd_score +
         0.25 * skill_coverage +
@@ -76,9 +56,6 @@ def compute_job_readiness_score(analysis: dict) -> dict:
         2
     )
 
-    # -----------------------------
-    # ML BACKUP (OPTIONAL)
-    # -----------------------------
     if USE_ML:
         try:
             from intelligence.job_readiness_ml import predict_job_readiness_ml
@@ -91,9 +68,6 @@ def compute_job_readiness_score(analysis: dict) -> dict:
         final_score = deterministic_score
         method = "rule_based"
 
-    # -----------------------------
-    # READINESS LEVEL
-    # -----------------------------
     if final_score >= 85:
         level = "Excellent"
     elif final_score >= 70:
@@ -102,15 +76,6 @@ def compute_job_readiness_score(analysis: dict) -> dict:
         level = "Average"
     else:
         level = "Poor"
-
-    # -----------------------------
-    # LOG FOR FUTURE ML TRAINING
-    # -----------------------------
-    log_job_readiness_sample(
-        breakdown=breakdown,
-        job_readiness=final_score,
-        status=analysis.get("status", "unknown")
-    )
 
     return {
         "job_readiness_score": final_score,

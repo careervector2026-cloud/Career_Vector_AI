@@ -1,4 +1,7 @@
+#leetcode_analyzer.py
 import httpx
+
+from analyzers.http_client import get_http_client
 
 LEETCODE_API_URL = "https://leetcode.com/graphql"
 
@@ -29,13 +32,13 @@ async def analyze_leetcode_async(username: str):
     variables = {"username": username}
 
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            response = await client.post(
-                LEETCODE_API_URL,
-                json={"query": query, "variables": variables},
-                headers={"Content-Type": "application/json"}
-            )
+        client = get_http_client()
 
+        response = await client.post(
+            LEETCODE_API_URL,
+            json={"query": query, "variables": variables},
+            headers={"Content-Type": "application/json"}
+        )
         if response.status_code != 200:
             return {
                 "score": 0.0,

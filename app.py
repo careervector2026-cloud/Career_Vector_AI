@@ -1,12 +1,15 @@
 #app.py
-import asyncio
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Query
+
+from admin.admin_dashboard import get_placement_funnel, get_top_students, get_at_risk_students, get_skill_gap_trends, \
+    get_student_progression
+# ATS
 from ats.ats_resume_fixer import generate_ats_fix_suggestions
 from ats.ats_screening import compute_ats_screening
-from intelligence.failure_analytics import generate_failure_analytics
-from fastapi import Query
-from pipeline.orchestrator import build_jd_context
+
+# PIPELINE
 from pipeline.orchestrator import (
+    build_jd_context,
     analyze_candidate_async,
     rank_candidates_against_jd_async,
     match_student_against_multiple_jds_async,
@@ -14,15 +17,21 @@ from pipeline.orchestrator import (
     recommend_career_paths,
     generate_market_demand_heatmap
 )
-from chatbot.student_chatbot import student_chatbot_router
+
+# OTHER MODULES
+from intelligence.failure_analytics import generate_failure_analytics
 from intelligence.talent_search import search_talent_pool
 from intelligence.learning_path import generate_learning_path
+
+from chatbot.student_chatbot import student_chatbot_router
+
 from interview.interview_engine import generate_questions
 from interview.answer_analyzer import evaluate_interview
 from interview.github_repo_fetcher import fetch_github_repositories
-from analyzers.resume_parser import parse_resume_from_url
-from analyzers.matcher import resume_jd_match
 from interview.adaptive_interview_engine import AdaptiveInterview
+
+from analyzers.resume_parser import parse_resume_from_url
+from analyzers.matcher import resume_jd_match_async  # ✅ FIXED
 
 app = FastAPI()
 
@@ -36,8 +45,10 @@ async def analyze(request: Request):
 
     data = await request.json()
 
-    if not data.get("resume_url") or not data.get("job_description"):
-        raise HTTPException(422, "resume_url and job_description required")
+    student_id = data.get("student_id")
+
+    if not data.get("resume_url") or not data.get("job_description") or not student_id:
+        raise HTTPException(422, "resume_url, job_description and student_id required")
 
     jd_context = await build_jd_context(data["job_description"])
 
@@ -45,13 +56,17 @@ async def analyze(request: Request):
         resume_url=data["resume_url"],
         jd_context=jd_context,
         github_url=data.get("github_url"),
-        leetcode_username=data.get("leetcode_username")
+        leetcode_username=data.get("leetcode_username"),
+        college_name=data.get("college_name"),
+        student_id=student_id   # 🔥 NEW
     )
+
 # -------------------------------------------------
-# RANK MULTIPLE CANDIDATES AGAINST ONE JD
+# RANK CANDIDATES
 # -------------------------------------------------
 @app.post("/rank-candidates")
 async def rank_candidates(request: Request):
+
     data = await request.json()
 
     if not data.get("job_description") or not data.get("candidates"):
@@ -62,22 +77,17 @@ async def rank_candidates(request: Request):
         candidates=data["candidates"]
     )
 
-# --------------------------------------------------------------------------
-# RANK MULTIPLE CANDIDATES AGAINST ONE JD with minimal data sent as response
-# --------------------------------------------------------------------------
+
 @app.post("/rank-candidates-summary")
 async def rank_candidates_summary(request: Request):
-    data = await request.json()
 
-    if not data.get("job_description") or not data.get("candidates"):
-        raise HTTPException(422, "job_description and candidates required")
+    data = await request.json()
 
     results = await rank_candidates_against_jd_async(
         jd_text=data["job_description"],
         candidates=data["candidates"]
     )
 
-    # Return only minimal fields for Java backend
     return [
         {
             "candidate_id": r["candidate_id"],
@@ -88,67 +98,59 @@ async def rank_candidates_summary(request: Request):
         for r in results
     ]
 
-
 # -------------------------------------------------
-# MATCH ONE STUDENT AGAINST MULTIPLE JDs
+# MATCH STUDENT VS MULTIPLE JDs
 # -------------------------------------------------
-
 @app.post("/match-student-jds")
 async def match_student_jds(
     request: Request,
     mode: str = Query("full", enum=["full", "lite"])
 ):
-    try:
-        data = await request.json()
 
-        student = data.get("student_profile")
-        jds = data.get("jds")
+    data = await request.json()
 
-        # Convert JD strings to dict format
-        if jds and isinstance(jds[0], str):
-            jds = [{"job_description": jd} for jd in jds]
+    # ✅ FIXED FIELD NAME
+    student = data.get("student_profile")
+    jds = data.get("jds")
 
-        if not student or not jds:
-            raise HTTPException(
-                status_code=422,
-                detail="student_profile and jds are required"
-            )
-
-        results = await match_student_against_multiple_jds_async(
-            student_profile=student,
-            jds=jds
+    if not student or not jds:
+        raise HTTPException(
+            status_code=422,
+            detail="student_profile and jds are required"
         )
 
-        # 🔹 LITE RESPONSE FOR SPRING BOOT
-        if mode == "lite":
-            return [
-                {
-                    "jd_id": r["jd_id"],
-                    "rank": r["rank"],
-                    "final_score": r["final_score"],
-                    "status": r["status"],
-                    "reason": r["reason"],
-                    "role_level": r["role_level"],
-                    "job_readiness_score": r["job_readiness"]["job_readiness_score"],
-                    "readiness_level": r["job_readiness"]["readiness_level"],
-                }
-                for r in results
-            ]
+    # Handle string JDs
+    if isinstance(jds[0], str):
+        jds = [{"job_description": jd} for jd in jds]
 
-        # 🔹 FULL RESPONSE (default)
-        return results
+    results = await match_student_against_multiple_jds_async(
+        student_profile=student,
+        jds=jds
+    )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if mode == "lite":
+        return [
+            {
+                "jd_id": r.get("jd_id"),
+                "rank": r.get("rank"),
+                "final_score": r.get("final_score"),
+                "status": r.get("status"),
+                "reason": r.get("reason"),
+                "role_level": r.get("role_level"),
+                "job_readiness_score": r["job_readiness"]["job_readiness_score"],
+                "readiness_level": r["job_readiness"]["readiness_level"],
+            }
+            for r in results
+        ]
 
+    return results
 
 # -------------------------------------------------
-# SKILL GAP REPORT
+# SKILL GAP
 # -------------------------------------------------
 @app.post("/skill-gap-report")
 async def skill_gap_report(request: Request):
+
     data = await request.json()
 
     return await generate_skill_gap_report(
@@ -159,10 +161,11 @@ async def skill_gap_report(request: Request):
     )
 
 # -------------------------------------------------
-# CAREER PATH RECOMMENDATION
+# CAREER PATH
 # -------------------------------------------------
 @app.post("/career-path")
 async def career_path(request: Request):
+
     data = await request.json()
 
     return await recommend_career_paths(
@@ -171,10 +174,11 @@ async def career_path(request: Request):
     )
 
 # -------------------------------------------------
-# MARKET DEMAND HEATMAP
+# MARKET DEMAND
 # -------------------------------------------------
 @app.post("/market-demand")
 async def market_demand(request: Request):
+
     data = await request.json()
 
     return await generate_market_demand_heatmap(
@@ -182,69 +186,234 @@ async def market_demand(request: Request):
     )
 
 # -------------------------------------------------
-# JOB READINESS (EXISTING)
+# JOB READINESS
 # -------------------------------------------------
 @app.post("/job-readiness")
 async def job_readiness(request: Request):
+
     data = await request.json()
 
-    if not data.get("resume_url") or not data.get("job_description"):
-        raise HTTPException(422, "resume_url and job_description required")
+    student_id = data.get("student_id")
+
+    if not student_id:
+        raise HTTPException(422, "student_id required")
+
+    jd_context = await build_jd_context(data["job_description"])
 
     result = await analyze_candidate_async(
         resume_url=data["resume_url"],
-        jd_text=data["job_description"],
+        jd_context=jd_context,
         github_url=data.get("github_url"),
-        leetcode_username=data.get("leetcode_username")
+        leetcode_username=data.get("leetcode_username"),
+        college_name=data.get("college_name"),
+        student_id=student_id
     )
 
     return {
         "job_readiness": result["job_readiness"],
         "status": result["status"]
     }
-
 # -------------------------------------------------
-# 🆕 FAILURE DIAGNOSIS (NEW FEATURE)
+# FAILURE DIAGNOSIS
 # -------------------------------------------------
 @app.post("/failure-diagnosis")
 async def failure_diagnosis(request: Request):
-    """
-    Returns explainable failure diagnosis
-    ONLY if candidate is rejected or review.
-    """
+
     data = await request.json()
 
-    if not data.get("resume_url") or not data.get("job_description"):
-        raise HTTPException(422, "resume_url and job_description required")
+    student_id = data.get("student_id")
+
+    if not student_id:
+        raise HTTPException(422, "student_id required")
+
+    jd_context = await build_jd_context(data["job_description"])
 
     result = await analyze_candidate_async(
         resume_url=data["resume_url"],
-        jd_text=data["job_description"],
+        jd_context=jd_context,
         github_url=data.get("github_url"),
-        leetcode_username=data.get("leetcode_username")
+        leetcode_username=data.get("leetcode_username"),
+        college_name=data.get("college_name"),
+        student_id=student_id
     )
 
     if result["status"] == "shortlist":
-        return {
-            "message": "Candidate shortlisted. Failure diagnosis not applicable."
-        }
+        return {"message": "Candidate shortlisted"}
 
     return {
         "status": result["status"],
         "final_score": result["final_score"],
-        "threshold": result["threshold"],
         "failure_diagnosis": result.get("failure_diagnosis")
     }
-
-#--------------------------------------------------
-#   FAILURE ANALYTICS
-#--------------------------------------------------
+# -------------------------------------------------
+# FAILURE ANALYTICS
+# -------------------------------------------------
 @app.get("/failure-analytics")
-def failure_analytics(decision_filter: str = "ALL"):
-    return generate_failure_analytics(decision_filter)
+async def failure_analytics(
+    decision_filter: str = "ALL",
+    college_name: str = None
+):
+    """
+    Query Params:
+    - decision_filter: ALL | reject | review | shortlist
+    - college_name: optional
+    """
+
+    return await generate_failure_analytics(
+        decision_filter=decision_filter,
+        college_name=college_name
+    )
 
 # -------------------------------------------------
-# 🆕 LEARNING PATH FROM JD (FIXED)
+# ATS CHECK (FIXED)
+# -------------------------------------------------
+@app.post("/ats-check")
+async def ats_check(request: Request):
+
+    data = await request.json()
+
+    resume_url = data.get("resume_url")
+    jd_text = data.get("job_description")
+
+    if not resume_url or not jd_text:
+        raise HTTPException(422, "resume_url and job_description required")
+
+    # ✅ FIX: use async matcher
+    resume_jd = await resume_jd_match_async(resume_url, jd_text)
+
+    ats_result = compute_ats_screening(resume_jd)
+
+    suggestions = generate_ats_fix_suggestions(resume_jd, ats_result)
+
+    return {
+        "ats_screening": ats_result,
+        "resume_jd": resume_jd,
+        "fix_suggestions": suggestions
+    }
+
+# -------------------------------------------------
+# TALENT SEARCH
+# -------------------------------------------------
+@app.post("/talent-search")
+async def talent_search(request: Request):
+
+    data = await request.json()
+
+    return await search_talent_pool(
+        data["query"],
+        data["candidates"],
+        data.get("top_k", 10)
+    )
+
+# -------------------------------------------------
+# INTERVIEW QUESTIONS
+# -------------------------------------------------
+@app.post("/generate-interview-questions")
+async def generate_interview_questions(payload: dict):
+
+    jd_text = payload.get("jd_text", "")
+    resume_url = payload.get("resume_url", "")
+
+    # ✅ FIX: async matcher
+    match_result = await resume_jd_match_async(resume_url, jd_text)
+
+    github_data = {"repositories": []}
+
+    if payload.get("github_url"):
+        try:
+            github_data = await fetch_github_repositories(payload["github_url"])
+        except:
+            pass
+
+    questions = generate_questions(
+        match_result["missing_skills"],
+        match_result["matched_skills"],
+        github_data,
+        0.6, 0.5, 0.6,
+        payload.get("n_questions", 10)
+    )
+
+    return {
+        "matched_skills": match_result["matched_skills"],
+        "missing_skills": match_result["missing_skills"],
+        "questions": questions
+    }
+
+# -------------------------------------------------
+# EVALUATE INTERVIEW
+# -------------------------------------------------
+@app.post("/evaluate-interview")
+def evaluate_interview_api(payload: dict):
+
+    result = evaluate_interview(payload.get("answers", []))
+
+    scores = result.get("question_scores", [])
+
+    for q in scores:
+        q["score"] = float(q["score"])
+
+    overall = round(sum(q["score"] for q in scores) / len(scores), 3) if scores else 0
+
+    return {
+        "question_scores": scores,
+        "overall_score": overall
+    }
+
+# -------------------------------------------------
+# ADAPTIVE INTERVIEW
+# -------------------------------------------------
+@app.post("/start-adaptive-interview")
+async def start_adaptive_interview(payload: dict):
+
+    session = AdaptiveInterview(
+        payload["jd_text"],
+        payload["resume_url"],
+        payload.get("github_url"),
+        payload.get("n_questions", 7)
+    )
+
+    await session.initialize_pipeline()
+
+    interview_sessions[payload["candidate_id"]] = session
+
+    return {"question": session.next_question()}
+
+
+@app.post("/adaptive-interview-answer")
+def adaptive_answer(payload: dict):
+
+    session = interview_sessions.get(payload["candidate_id"])
+
+    if not session:
+        return {"error": "Interview session not found"}
+
+    score = session.submit_answer(payload["answer"])
+
+    return {
+        "score": score,
+        "next_question": session.next_question()
+    }
+
+# -------------------------------------------------
+# CHATBOT
+# -------------------------------------------------
+@app.post("/student-chatbot")
+async def student_chatbot(request: Request):
+
+    data = await request.json()
+
+    return await student_chatbot_router(
+        query=data["query"],
+        resume_url=data["resume_url"],
+        job_description=data.get("job_description"),
+        github_url=data.get("github_url"),
+        leetcode_username=data.get("leetcode_username"),
+        jds=data.get("jds"),
+        student_id=data.get("student_id"),     # 🔥 NEW
+        college_name=data.get("college_name")  # 🔥 IMPORTANT
+    )
+# -------------------------------------------------
+# LEARNING PATH FROM JD (RESTORE)
 # -------------------------------------------------
 def infer_target_role_from_jd(jd_text: str) -> str:
     jd = jd_text.lower()
@@ -255,42 +424,9 @@ def infer_target_role_from_jd(jd_text: str) -> str:
         "Machine Learning Engineer": 0
     }
 
-    # -------------------------
-    # Frontend Indicators
-    # -------------------------
-    frontend_keywords = [
-        "react", "angular", "vue",
-        "frontend developer",
-        "responsive web",
-        "ui/ux",
-        "html", "css",
-        "javascript", "typescript"
-    ]
-
-    # -------------------------
-    # Backend Indicators
-    # -------------------------
-    backend_keywords = [
-        "spring boot",
-        "backend developer",
-        "java",
-        "microservices",
-        "hibernate",
-        "jpa",
-        "sql",
-        "database"
-    ]
-
-    # -------------------------
-    # ML Indicators
-    # -------------------------
-    ml_keywords = [
-        "machine learning",
-        "data scientist",
-        "deep learning",
-        "tensorflow",
-        "pytorch"
-    ]
+    frontend_keywords = ["react", "angular", "vue", "html", "css", "javascript"]
+    backend_keywords = ["spring boot", "java", "microservices", "sql"]
+    ml_keywords = ["machine learning", "tensorflow", "pytorch"]
 
     for kw in frontend_keywords:
         if kw in jd:
@@ -304,307 +440,62 @@ def infer_target_role_from_jd(jd_text: str) -> str:
         if kw in jd:
             role_scores["Machine Learning Engineer"] += 1
 
-    # Choose highest score
     return max(role_scores, key=role_scores.get)
+
 
 @app.post("/learning-path")
 async def learning_path_from_jd(request: Request):
+
     data = await request.json()
 
-    if not data.get("resume_url") or not data.get("job_description"):
-        raise HTTPException(
-            422,
-            "resume_url and job_description are required"
-        )
+    jd_context = await build_jd_context(data["job_description"])
 
-    # Step 1: Analyze candidate
     result = await analyze_candidate_async(
         resume_url=data["resume_url"],
-        jd_text=data["job_description"],
-        github_url=data.get("github_url"),
-        leetcode_username=data.get("leetcode_username")
+        jd_context=jd_context
     )
 
     resume_jd = result["resume_jd"]
 
-    missing_skills = resume_jd.get("missing_skills", [])
-    matched_skills = resume_jd.get("matched_skills", [])
+    missing = resume_jd.get("missing_skills", [])
+    matched = resume_jd.get("matched_skills", [])
+    weights = resume_jd.get("jd_skill_weights", {})
 
-    # Optional: define weak skills (example rule)
-    weights = resume_jd["jd_skill_weights"]
+    weak_skills = [s for s in matched if weights.get(s, 0) >= 2.0]
 
-    weak_skills = [
-        s for s in matched_skills
-        if weights.get(s, 0) >= 2.0
-    ]
-    # Step 2: Infer correct role
-    target_role = infer_target_role_from_jd(data["job_description"])
+    role = infer_target_role_from_jd(data["job_description"])
 
-    # Step 3: Generate roadmap
-    roadmap = generate_learning_path(
-        target_role=target_role,
-        missing_skills=missing_skills,
+    return generate_learning_path(
+        target_role=role,
+        missing_skills=missing,
         weak_skills=weak_skills,
-        student_id=None
+        student_id=data.get("student_id")  # 🔥 NEW
     )
 
-    return roadmap
+# -------------------------------------------------
+# ADMIN DASHBOARD APIs
+# -------------------------------------------------
 
-#-------------------------------------------------------------
-#    ATS CHECKING
-#-------------------------------------------------------------
-@app.post("/ats-check")
-async def ats_check(request: Request):
+@app.get("/admin/placement-funnel")
+async def placement_funnel(college_name: str):
+    return await get_placement_funnel(college_name)
 
-    try:
-        data = await request.json()
 
-        resume_url = data.get("resume_url")
-        jd_text = data.get("job_description")
+@app.get("/admin/top-students")
+async def top_students(college_name: str):
+    return await get_top_students(college_name)
 
-        if not resume_url or not jd_text:
 
-            raise HTTPException(
-                status_code=422,
-                detail="resume_url and job_description are required"
-            )
+@app.get("/admin/at-risk-students")
+async def at_risk_students(college_name: str):
+    return await get_at_risk_students(college_name)
 
-        # Resume ↔ JD match
-        resume_jd = await asyncio.to_thread(
-            resume_jd_match,
-            resume_url,
-            jd_text
-        )
 
-        # ATS Screening
-        ats_result = compute_ats_screening(resume_jd)
+@app.get("/admin/skill-gap-trends")
+async def skill_gap_trends(college_name: str):
+    return await get_skill_gap_trends(college_name)
 
-        # ATS Fix Suggestions
-        suggestions = generate_ats_fix_suggestions(
-            resume_jd,
-            ats_result
-        )
 
-        return {
-            "ats_screening": ats_result,
-            "resume_jd": resume_jd,
-            "fix_suggestions": suggestions
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-#----------------------------------------------------------
-#   TALENT SEARCH
-#----------------------------------------------------------
-@app.post("/talent-search")
-async def talent_search(request: Request):
-
-    try:
-
-        data = await request.json()
-
-        query = data.get("query")
-        candidates = data.get("candidates")
-        top_k = data.get("top_k", 10)
-
-        if not query or not candidates:
-
-            raise HTTPException(
-                status_code=422,
-                detail="query and candidates are required"
-            )
-
-        results = await search_talent_pool(
-            query,
-            candidates,
-            top_k
-        )
-
-        return {
-            "query": query,
-            "results": results
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
-
-#----------------------------------------------------------
-#   GENERATIVE INTERVIEW QUESTIONS
-#----------------------------------------------------------
-
-@app.post("/generate-interview-questions")
-async def generate_interview_questions(payload: dict):
-
-    jd_text = payload.get("jd_text", "")
-    resume_url = payload.get("resume_url", "")
-    github_url = payload.get("github_url", "")
-    n_questions = payload.get("n_questions", 10)
-
-    # -------------------------
-    # Resume Parsing
-    # -------------------------
-
-    resume_text = parse_resume_from_url(resume_url)
-
-    # -------------------------
-    # Resume–JD Matching
-    # -------------------------
-
-    match_result = resume_jd_match(resume_url, jd_text)
-
-    matched_skills = match_result["matched_skills"]
-    missing_skills = match_result["missing_skills"]
-
-    # -------------------------
-    # GitHub Analysis
-    # -------------------------
-
-    github_data = {"repositories": []}
-
-    if github_url:
-        try:
-            github_data = await fetch_github_repositories(github_url)
-        except Exception:
-            github_data = {"repositories": []}
-
-    # -------------------------
-    # Placeholder Scores
-    # -------------------------
-
-    github_score = 0.6
-    leetcode_score = 0.5
-    readiness_score = 0.6
-
-    # -------------------------
-    # Generate Questions
-    # -------------------------
-
-    questions = generate_questions(
-        missing_skills,
-        matched_skills,
-        github_data,
-        github_score,
-        leetcode_score,
-        readiness_score,
-        n_questions
-    )
-
-    return {
-        "matched_skills": matched_skills,
-        "missing_skills": missing_skills,
-        "questions": questions
-    }
-
-#----------------------------------------------------------------
-#   EVALUATING ANSWERS
-#----------------------------------------------------------------
-@app.post("/evaluate-interview")
-def evaluate_interview_api(payload: dict):
-
-    answers = payload.get("answers", [])
-
-    result = evaluate_interview(answers)
-
-    question_scores = result.get("question_scores", [])
-
-    # convert numpy floats safely
-    total = 0
-    for q in question_scores:
-        q["score"] = float(q["score"])
-        total += q["score"]
-
-    overall_score = 0.0
-    if question_scores:
-        overall_score = round(total / len(question_scores), 3)
-
-    return {
-        "question_scores": question_scores,
-        "overall_score": overall_score
-    }
-
-# --------------------------------------------------------
-#     ADAPTIVE INTERVIEW STARTER
-# --------------------------------------------------------
-
-@app.post("/start-adaptive-interview")
-async def start_adaptive_interview(payload: dict):
-
-    candidate_id = payload["candidate_id"]
-    jd_text = payload["jd_text"]
-    resume_url = payload["resume_url"]
-    github_url = payload.get("github_url")
-
-    n_questions = payload.get("n_questions", 7)
-
-    session = AdaptiveInterview(jd_text, resume_url, github_url, n_questions)
-
-    await session.initialize_pipeline()
-    interview_sessions[candidate_id] = session
-
-    question = session.next_question()
-
-    return {"question": question}
-
-# --------------------------------------------------------
-#     ADAPTIVE INTERVIEW EVALUATER
-# --------------------------------------------------------
-
-@app.post("/adaptive-interview-answer")
-def adaptive_answer(payload: dict):
-
-    candidate_id = payload["candidate_id"]
-    answer = payload["answer"]
-
-    session = interview_sessions.get(candidate_id)
-
-    if not session:
-        return {"error": "Interview session not found"}
-
-    score = session.submit_answer(answer)
-
-    next_q = session.next_question()
-
-    return {
-        "score": score,
-        "next_question": next_q
-    }
-
-@app.post("/student-chatbot")
-async def student_chatbot(request: Request):
-
-    data = await request.json()
-
-    query = data.get("query")
-    resume_url = data.get("resume_url")
-    job_description = data.get("job_description")
-    github_url = data.get("github_url")
-    leetcode_username = data.get("leetcode_username")
-    jds=data.get("jds")
-
-    if not query or not resume_url:
-
-        raise HTTPException(
-            status_code=422,
-            detail="query and resume_url required"
-        )
-
-    result = await student_chatbot_router(
-        query=query,
-        resume_url=resume_url,
-        job_description=job_description,
-        github_url=github_url,
-        leetcode_username=leetcode_username,
-        jds=jds
-    )
-
-    return result
+@app.get("/admin/student-progression")
+async def student_progression(student_id: str):
+    return await get_student_progression(student_id)

@@ -1,14 +1,40 @@
-# ats_screening.py
-
-from analyzers.matcher import get_model
+from analyzers.model_registry import get_embedding_model
 from sklearn.metrics.pairwise import cosine_similarity
 from functools import lru_cache
+import asyncio
+import concurrent.futures
 
 SIMILARITY_THRESHOLD = 0.70
 
+# -------------------------------------------------
+# SAFE MODEL LOADER (THREAD-SAFE)
+# -------------------------------------------------
+
+_model = None
+
+def get_model():
+    global _model
+
+    if _model is not None:
+        return _model
+
+    try:
+        asyncio.get_running_loop()
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(
+                lambda: asyncio.run(get_embedding_model())
+            )
+            _model = future.result()
+
+    except RuntimeError:
+        _model = asyncio.run(get_embedding_model())
+
+    return _model
+
 
 # -------------------------------------------------
-# TECHNOLOGY FAMILY MAPPING (FINAL IMPROVEMENT)
+# TECHNOLOGY FAMILY MAPPING
 # -------------------------------------------------
 
 SKILL_FAMILIES = {
@@ -27,9 +53,7 @@ def proximity_skill_recovery(missing_skills, matched_skills):
     recovered = []
 
     for missing in missing_skills:
-
         if missing in SKILL_FAMILIES:
-
             family = SKILL_FAMILIES[missing]
 
             if any(skill in matched_skills for skill in family):
@@ -39,7 +63,7 @@ def proximity_skill_recovery(missing_skills, matched_skills):
 
 
 # -------------------------------------------------
-# CACHE JD EMBEDDINGS (FAST RANKING)
+# CACHE JD EMBEDDINGS
 # -------------------------------------------------
 
 @lru_cache(maxsize=128)
@@ -47,10 +71,10 @@ def get_jd_skill_embeddings(skills_tuple):
 
     model = get_model()
 
-    if model is None:
-        return None
-
-    return model.encode(list(skills_tuple))
+    return model.encode(
+        list(skills_tuple),
+        normalize_embeddings=True
+    )
 
 
 # -------------------------------------------------
@@ -64,12 +88,12 @@ def semantic_skill_recovery(missing_skills, matched_skills):
 
     model = get_model()
 
-    if model is None:
-        return []
-
     try:
+        missing_emb = model.encode(
+            missing_skills,
+            normalize_embeddings=True
+        )
 
-        missing_emb = model.encode(missing_skills)
         matched_emb = get_jd_skill_embeddings(tuple(matched_skills))
 
         recovered = []
@@ -102,22 +126,14 @@ def detect_project_skills(resume_text, missing_skills):
     text = resume_text.lower()
 
     project_words = [
-        "project",
-        "built",
-        "developed",
-        "implemented",
-        "created"
+        "project", "built", "developed",
+        "implemented", "created"
     ]
 
-    recovered = []
+    if any(w in text for w in project_words):
+        return [s for s in missing_skills if s in text]
 
-    if any(word in text for word in project_words):
-
-        for skill in missing_skills:
-            if skill in text:
-                recovered.append(skill)
-
-    return recovered
+    return []
 
 
 # -------------------------------------------------
@@ -151,7 +167,7 @@ def detect_resume_sections(resume_text):
 
 
 # -------------------------------------------------
-# ATS FORMAT SCORE
+# FORMAT SCORE
 # -------------------------------------------------
 
 def ats_format_score(resume_text):
@@ -187,130 +203,77 @@ def compute_ats_screening(resume_jd, resume_text=""):
     missing = resume_jd.get("missing_skills", [])
     weights = resume_jd.get("jd_skill_weights", {})
 
-    # ----------------------------------------------
-    # SKILL RECOVERY LAYERS
-    # ----------------------------------------------
+    # -------------------------------
+    # SKILL RECOVERY
+    # -------------------------------
 
-    proximity_recovered = proximity_skill_recovery(
-        missing,
-        matched
-    )
+    proximity = proximity_skill_recovery(missing, matched)
+    semantic = semantic_skill_recovery(missing, matched)
+    project = detect_project_skills(resume_text, missing)
 
-    semantic_recovered = semantic_skill_recovery(
-        missing,
-        matched
-    )
+    recovered = list(set(proximity + semantic + project))
 
-    project_recovered = detect_project_skills(
-        resume_text,
-        missing
-    )
+    matched_extended = matched + recovered
+    missing_filtered = [s for s in missing if s not in recovered]
 
-    recovered_skills = list(
-        set(
-            proximity_recovered
-            + semantic_recovered
-            + project_recovered
-        )
-    )
+    # -------------------------------
+    # WEIGHTED COVERAGE
+    # -------------------------------
 
-    matched_extended = matched + recovered_skills
-    missing_filtered = [
-        s for s in missing if s not in recovered_skills
-    ]
-
-    # ----------------------------------------------
-    # WEIGHTED KEYWORD COVERAGE
-    # ----------------------------------------------
-
-    matched_weight = sum(
-        weights.get(s, 1) for s in matched_extended
-    )
-
+    matched_weight = sum(weights.get(s, 1) for s in matched_extended)
     total_weight = sum(weights.values()) or 1
 
-    keyword_coverage = (
-        matched_weight / total_weight
-    ) * 100
+    keyword_coverage = (matched_weight / total_weight) * 100
 
-    # ----------------------------------------------
-    # MANDATORY SKILL PENALTY
-    # ----------------------------------------------
+    # -------------------------------
+    # MANDATORY PENALTY
+    # -------------------------------
 
-    mandatory_skills = [
-        skill for skill, w in weights.items()
-        if w >= 2.5
-    ]
+    mandatory = [s for s, w in weights.items() if w >= 2.5]
+    missing_mandatory = [s for s in mandatory if s in missing_filtered]
 
-    missing_mandatory = [
-        s for s in mandatory_skills
-        if s in missing_filtered
-    ]
+    penalty = len(missing_mandatory) * 10
 
-    mandatory_penalty = len(missing_mandatory) * 10
+    # -------------------------------
+    # STRUCTURE + FORMAT
+    # -------------------------------
 
-    # ----------------------------------------------
-    # RESUME COMPLETENESS
-    # ----------------------------------------------
-
-    completeness_score, detected_sections = detect_resume_sections(
-        resume_text
-    )
-
-    if not resume_text:
-        completeness_score = 60
-
-    # ----------------------------------------------
-    # FORMAT SCORE
-    # ----------------------------------------------
-
+    completeness, sections = detect_resume_sections(resume_text)
     format_score = ats_format_score(resume_text)
 
-    # ----------------------------------------------
-    # FINAL ATS SCORE
-    # ----------------------------------------------
+    # -------------------------------
+    # FINAL SCORE
+    # -------------------------------
 
     ats_score = (
         0.55 * keyword_coverage +
-        0.25 * completeness_score +
-        0.20 * format_score
-        - mandatory_penalty
+        0.25 * completeness +
+        0.20 * format_score -
+        penalty
     )
 
     ats_score = round(max(min(ats_score, 100), 0), 2)
 
-    # ----------------------------------------------
+    # -------------------------------
     # DECISION
-    # ----------------------------------------------
+    # -------------------------------
 
     if ats_score >= 65:
         decision = "pass"
-
     elif ats_score >= 45:
         decision = "review"
-
     else:
         decision = "reject"
 
-    # ----------------------------------------------
-    # OUTPUT
-    # ----------------------------------------------
-
     return {
-
         "ats_score": ats_score,
         "decision": decision,
-
         "keyword_coverage": round(keyword_coverage, 2),
-
         "missing_mandatory_skills": missing_mandatory,
-
-        "proximity_recovered_skills": proximity_recovered,
-        "semantic_recovered_skills": semantic_recovered,
-        "project_recovered_skills": project_recovered,
-
-        "resume_completeness": completeness_score,
-        "detected_sections": detected_sections,
-
+        "proximity_recovered_skills": proximity,
+        "semantic_recovered_skills": semantic,
+        "project_recovered_skills": project,
+        "resume_completeness": completeness,
+        "detected_sections": sections,
         "format_score": format_score
     }

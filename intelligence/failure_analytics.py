@@ -1,78 +1,163 @@
-import csv
-import os
-from collections import Counter
-
-FILE = "../logs/failure_analytics_log.csv"
+from collections import Counter, defaultdict
+from db.neon_db import get_pool
+import json
 
 
-def generate_failure_analytics(decision_filter: str = "ALL"):
+async def generate_failure_analytics(
+    decision_filter: str = "ALL",
+    college_name: str = None
+):
     """
-    decision_filter: ALL | REJECT | REVIEW
-    Aggregates historical rejection/review patterns safely.
+    Optimized DB-based analytics:
+    - Uses structured columns (status, final_score)
+    - Falls back to JSON if needed
+    - Supports DB-level filtering
     """
 
-    if not os.path.exists(FILE):
-        return {"message": "No analytics data available"}
+    pool = await get_pool()
 
+    async with pool.acquire() as conn:
+
+        # -----------------------------
+        # BUILD QUERY (NOW OPTIMIZED)
+        # -----------------------------
+        query = """
+            SELECT 
+                college_name,
+                status,
+                final_score,
+                result
+            FROM candidate_analysis_cache
+            WHERE 1=1
+        """
+
+        params = []
+        idx = 1
+
+        # ✅ FILTER: decision (DB LEVEL)
+        if decision_filter != "ALL":
+            query += f" AND LOWER(status) = LOWER(${idx})"
+            params.append(decision_filter)
+            idx += 1
+
+        # ✅ FILTER: college (DB LEVEL)
+        if college_name:
+            query += f" AND LOWER(college_name) = LOWER(${idx})"
+            params.append(college_name)
+            idx += 1
+
+        rows = await conn.fetch(query, *params)
+
+    if not rows:
+        return {"message": "No data found"}
+
+    # -----------------------------
+    # ANALYTICS STRUCTURES
+    # -----------------------------
     primary_counter = Counter()
     secondary_counter = Counter()
     skill_counter = Counter()
-    role_counter = Counter()
-    policy_counter = Counter()
+
+    college_counter = Counter()
+    college_failures = Counter()
+    college_scores = defaultdict(list)
 
     total_records = 0
 
-    with open(FILE, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
+    # -----------------------------
+    # PROCESS DATA
+    # -----------------------------
+    for row in rows:
 
-        for row in reader:
-            # Skip malformed rows completely
-            if not row:
-                continue
+        raw_result = row["result"] or {}
 
-            decision_stage = (row.get("decision_stage") or "").upper()
+        # ✅ SAFE JSON HANDLING (old corrupted rows)
+        if isinstance(raw_result, str):
+            try:
+                result = json.loads(raw_result)
+            except:
+                result = {}
+        else:
+            result = raw_result
 
-            # Apply filter
-            if decision_filter != "ALL" and decision_stage != decision_filter:
-                continue
+        # ✅ USE DB COLUMN FIRST (FAST)
+        status = (row["status"] or result.get("status") or "").lower()
+        score = float(row["final_score"] or result.get("final_score") or 0)
 
-            total_records += 1
+        college = row["college_name"] or "unknown"
 
-            # Safe field extraction
-            role_level = row.get("role_level") or "unknown"
-            role_policy = row.get("role_policy") or "unknown"
-            primary = row.get("primary_reasons") or ""
-            secondary = row.get("secondary_reasons") or ""
-            missing = row.get("missing_skills") or ""
+        total_records += 1
 
-            # Count role distributions
-            role_counter[role_level] += 1
-            policy_counter[role_policy] += 1
+        # -------------------------
+        # COLLEGE METRICS
+        # -------------------------
+        college_counter[college] += 1
+        college_scores[college].append(score)
 
-            # Count primary reasons
-            for r in primary.split("|"):
-                r = r.strip()
-                if r:
-                    primary_counter[r] += 1
+        if status in {"reject", "review"}:
+            college_failures[college] += 1
 
-            # Count secondary reasons
-            for r in secondary.split("|"):
-                r = r.strip()
-                if r:
-                    secondary_counter[r] += 1
+        # -------------------------
+        # FAILURE DATA
+        # -------------------------
+        failure = result.get("failure_diagnosis", {})
 
-            # Count missing skills
-            for s in missing.split("|"):
-                s = s.strip()
-                if s:
-                    skill_counter[s] += 1
+        primary = failure.get("primary_reasons", [])
+        secondary = failure.get("secondary_reasons", [])
+        missing = result.get("resume_jd", {}).get("missing_skills", [])
 
-    return {
-        "decision_scope": decision_filter,
+        for r in primary:
+            reason = r.get("reason", "").strip()
+            if reason:
+                primary_counter[reason] += 1
+
+        for r in secondary:
+            reason = r.get("reason", "").strip()
+            if reason:
+                secondary_counter[reason] += 1
+
+        for s in missing:
+            if isinstance(s, dict):
+                s = s.get("skill", "")
+            if s:
+                skill_counter[s] += 1
+
+    # -----------------------------
+    # COLLEGE INSIGHTS
+    # -----------------------------
+    college_insights = []
+
+    for c in college_counter:
+        total = college_counter[c]
+        failures = college_failures[c]
+        avg_score = sum(college_scores[c]) / max(len(college_scores[c]), 1)
+
+        college_insights.append({
+            "college": c,
+            "total_candidates": total,
+            "failure_rate": round(failures / total, 2),
+            "avg_score": round(avg_score, 2)
+        })
+
+    college_insights.sort(key=lambda x: x["failure_rate"], reverse=True)
+
+    # -----------------------------
+    # FINAL RESPONSE
+    # -----------------------------
+    response = {
         "total_records": total_records,
         "top_primary_issues": primary_counter.most_common(5),
         "top_secondary_issues": secondary_counter.most_common(5),
         "most_common_missing_skills": skill_counter.most_common(5),
-        "by_role_level": dict(role_counter),
-        "by_evaluation_policy": dict(policy_counter)
+        "college_insights": college_insights[:10]
     }
+
+    # ✅ GLOBAL ONLY
+    if not college_name:
+        response["top_failing_colleges"] = sorted(
+            college_failures.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:5]
+
+    return response
