@@ -6,6 +6,7 @@ from collections import Counter
 from analyzers.matcher import extract_skills, resume_jd_match_async
 from analyzers.github_analyzer import analyze_github_async
 from analyzers.leetcode_analyzer import analyze_leetcode_async
+from intelligence.action_plan import generate_action_plan
 from intelligence.candidate_report import build_candidate_report
 from intelligence.explainability import generate_explanation
 
@@ -16,6 +17,7 @@ from intelligence.placement_probability import compute_placement_probability
 
 from db.cache_repo import get_cached_analysis, store_analysis
 from intelligence.role_redirection import suggest_alternative_roles
+from intelligence.what_if_engine import generate_what_if_analysis
 from utils.cache import generate_cache_key
 from utils.memory_cache import analysis_cache_memory
 
@@ -180,8 +182,8 @@ async def analyze_candidate_async(
         response["explanation"] = explanation
         response["alternative_roles"] = alternatives
         response["candidate_report"] = report
-        response["what_if_analysis"] = generate_what_if_analysis(response)
-        response["action_plan"] = generate_action_plan(response)
+        # response["what_if_analysis"] = generate_what_if_analysis(response)
+        # response["action_plan"] = generate_action_plan(response)
 
         # -----------------------------
         # CACHE STORE
@@ -302,8 +304,8 @@ async def analyze_candidate_async(
     response["explanation"] = explanation
     response["alternative_roles"] = alternatives
     response["candidate_report"] = report
-    response["what_if_analysis"] = generate_what_if_analysis(response)
-    response["action_plan"] = generate_action_plan(response)
+    # response["what_if_analysis"] = generate_what_if_analysis(response)
+    # response["action_plan"] = generate_action_plan(response)
 
     # -----------------------------
     # CACHE STORE
