@@ -1,3 +1,4 @@
+#ats_screening
 from analyzers.model_registry import get_embedding_model
 from sklearn.metrics.pairwise import cosine_similarity
 from functools import lru_cache
@@ -10,28 +11,9 @@ SIMILARITY_THRESHOLD = 0.70
 # SAFE MODEL LOADER (THREAD-SAFE)
 # -------------------------------------------------
 
-_model = None
+from analyzers.model_registry import get_model_sync
 
-def get_model():
-    global _model
-
-    if _model is not None:
-        return _model
-
-    try:
-        asyncio.get_running_loop()
-
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(
-                lambda: asyncio.run(get_embedding_model())
-            )
-            _model = future.result()
-
-    except RuntimeError:
-        _model = asyncio.run(get_embedding_model())
-
-    return _model
-
+model = get_model_sync()
 
 # -------------------------------------------------
 # TECHNOLOGY FAMILY MAPPING
@@ -69,7 +51,7 @@ def proximity_skill_recovery(missing_skills, matched_skills):
 @lru_cache(maxsize=128)
 def get_jd_skill_embeddings(skills_tuple):
 
-    model = get_model()
+    model = EMBEDDING_MODEL
 
     return model.encode(
         list(skills_tuple),
@@ -86,7 +68,7 @@ def semantic_skill_recovery(missing_skills, matched_skills):
     if not missing_skills or not matched_skills:
         return []
 
-    model = get_model()
+    model = EMBEDDING_MODEL
 
     try:
         missing_emb = model.encode(

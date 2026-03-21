@@ -1,21 +1,12 @@
-#chatbot_intent_engine.py
-from sentence_transformers import SentenceTransformer
 import numpy as np
-from functools import lru_cache
+from analyzers.model_registry import get_model_sync
 
-# -----------------------------------------
-# MODEL LOADER (PREVENTS REPEATED LOAD)
-# -----------------------------------------
-
-@lru_cache(maxsize=1)
-def get_model():
-    return SentenceTransformer("all-MiniLM-L6-v2")
-
+# ✅ single model instance
+model = get_model_sync()
 
 # -----------------------------------------
 # INTENTS
 # -----------------------------------------
-
 
 INTENTS = {
 
@@ -44,10 +35,6 @@ INTENTS = {
         "which job suits my profile",
         "what roles can i apply for"
     ],
-
-    # -------------------------------------------------
-    # FAILURE DIAGNOSIS INTENT
-    # -------------------------------------------------
 
     "FAILURE_REASON": [
         "why was i rejected",
@@ -87,34 +74,21 @@ INTENTS = {
     ]
 }
 
-
-# -----------------------------------------
-# PRECOMPUTE INTENT EMBEDDINGS
-# -----------------------------------------
-
 intent_embeddings = {}
 
+# -----------------------------------------
+# INITIALIZE INTENTS
+# -----------------------------------------
+
 def initialize_intents():
-
-    model = get_model()
-
     for intent, examples in INTENTS.items():
-
-        emb = model.encode(examples)
-
-        intent_embeddings[intent] = emb
-
-
-initialize_intents()
-
+        intent_embeddings[intent] = model.encode(examples)
 
 # -----------------------------------------
 # DETECT INTENT
 # -----------------------------------------
 
 def detect_intent_semantic(query):
-
-    model = get_model()
 
     query_embedding = model.encode([query])[0]
 
@@ -124,7 +98,6 @@ def detect_intent_semantic(query):
     for intent, embeddings in intent_embeddings.items():
 
         scores = np.dot(embeddings, query_embedding)
-
         score = max(scores)
 
         if score > best_score:

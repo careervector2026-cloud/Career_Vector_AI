@@ -1,7 +1,6 @@
 import numpy as np
 from functools import lru_cache
-
-from analyzers.matcher import get_model
+from analyzers.model_registry import get_model_sync
 from analyzers.resume_parser import parse_resume_from_url
 
 try:
@@ -18,7 +17,7 @@ except Exception:
 @lru_cache(maxsize=2048)
 def get_resume_embedding_cached(resume_url):
 
-    model = get_model()
+    model = get_model_sync()
 
     resume_text = parse_resume_from_url(resume_url)
 
@@ -33,7 +32,7 @@ def get_resume_embedding_cached(resume_url):
 
 async def search_talent_pool(query, candidates, top_k=10):
 
-    model = get_model()
+    model = get_model_sync()
 
     query_embedding = model.encode(query)
     query_embedding = np.array(query_embedding).astype("float32")

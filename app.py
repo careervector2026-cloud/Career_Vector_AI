@@ -37,6 +37,19 @@ app = FastAPI()
 
 interview_sessions = {}
 
+EMBEDDING_MODEL = None
+
+@app.on_event("startup")
+async def load_model():
+
+    global EMBEDDING_MODEL
+
+    from analyzers.model_registry import get_embedding_model
+    EMBEDDING_MODEL = await get_embedding_model()
+
+    # ✅ MOVE HERE (after model loads)
+    from chatbot.chatbot_intent_engine import initialize_intents
+    initialize_intents()
 # -------------------------------------------------
 # ANALYZE SINGLE CANDIDATE
 # -------------------------------------------------
@@ -90,7 +103,7 @@ async def rank_candidates_summary(request: Request):
 
     return [
         {
-            "candidate_id": r["candidate_id"],
+            "student_id": r["student_id"],
             "rank": r["rank"],
             "final_score": r["final_score"],
             "status": r["status"]

@@ -231,10 +231,6 @@ async def resume_jd_match_async(resume_url: str, jd_text: str):
 # -------------------------------------------------
 # 🔥 BACKWARD COMPATIBILITY
 # -------------------------------------------------
-def get_model():
-    import asyncio
-    return asyncio.run(get_embedding_model())
-
 
 def resume_jd_match(resume_url: str, jd_text: str):
     """
