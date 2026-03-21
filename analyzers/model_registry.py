@@ -18,6 +18,7 @@ async def get_embedding_model():
 
                 _model = SentenceTransformer(
                     MODEL_NAME,
+                    device="cpu",
                     cache_folder="./hf_cache"
                 )
 
@@ -30,6 +31,10 @@ def get_model_sync():
 
     if _model is None:
         from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer(MODEL_NAME)
+        _model = SentenceTransformer(
+            MODEL_NAME,
+            device="cpu",
+            cache_folder="./hf_cache"
+        )
 
     return _model
