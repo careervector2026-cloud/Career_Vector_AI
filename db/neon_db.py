@@ -3,8 +3,8 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()   # 🔥 THIS IS THE MISSING PIECE
-
-DATABASE_URL = os.getenv("DATABASE_URL")
+#
+# DATABASE_URL = os.getenv("DATABASE_URL")
 
 _pool = None
 
