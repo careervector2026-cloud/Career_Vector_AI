@@ -1,3 +1,4 @@
+#cache_repo.py
 from db.neon_db import get_pool
 import json
 
@@ -35,6 +36,11 @@ async def get_cached_analysis(cache_key: str):
 # -------------------------------------------------
 # STORE / UPDATE CACHE
 # -------------------------------------------------
+# cache_repo.py
+
+from utils.cache import generate_jd_id   # 🔥 import
+
+
 async def store_analysis(cache_key: str, data: dict):
 
     pool = await get_pool()
@@ -42,6 +48,9 @@ async def store_analysis(cache_key: str, data: dict):
     async with pool.acquire() as conn:
 
         result = data.get("result", {})
+
+        jd_text = data.get("jd_text", "")   # 🔥 REQUIRED
+        jd_id = generate_jd_id(jd_text)     # 🔥 GENERATED HERE
 
         await conn.execute(
             """
@@ -52,25 +61,28 @@ async def store_analysis(cache_key: str, data: dict):
                 leetcode_username,
                 college_name,
                 student_id,
+                jd_id,              -- 🔥 NEW COLUMN
                 result,
                 status,
                 final_score
             )
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 
             ON CONFLICT (cache_key) DO UPDATE SET
                 result = EXCLUDED.result,
                 status = EXCLUDED.status,
                 final_score = EXCLUDED.final_score,
                 college_name = EXCLUDED.college_name,
-                student_id = EXCLUDED.student_id
+                student_id = EXCLUDED.student_id,
+                jd_id = EXCLUDED.jd_id      -- 🔥 UPDATE ALSO
             """,
             cache_key,
             data.get("resume_url"),
             data.get("github_url"),
             data.get("leetcode_username"),
             data.get("college_name"),
-            data.get("student_id"),  # 🔥 NEW
+            data.get("student_id"),
+            jd_id,                         # 🔥 PASS HERE
             json.dumps(result),
             result.get("status") or result.get("decision"),
             float(result.get("final_score", 0))

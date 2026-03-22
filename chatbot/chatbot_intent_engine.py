@@ -1,15 +1,13 @@
-import numpy as np
-from analyzers.model_registry import get_model_sync
+# chatbot_intent_engine.py
 
-# ✅ single model instance
-model = get_model_sync()
+import numpy as np
+from analyzers.model_registry import get_embedding_model
 
 # -----------------------------------------
 # INTENTS
 # -----------------------------------------
 
 INTENTS = {
-
     "JOB_READINESS": [
         "am i job ready",
         "how ready am i",
@@ -18,7 +16,6 @@ INTENTS = {
         "do i qualify for this job",
         "am i eligible for this job"
     ],
-
     "SKILL_GAP": [
         "what skills am i missing",
         "skill gap",
@@ -27,7 +24,6 @@ INTENTS = {
         "what skills should i improve",
         "what should i study"
     ],
-
     "JOB_MATCH": [
         "which jobs match me",
         "find jobs for my resume",
@@ -35,7 +31,6 @@ INTENTS = {
         "which job suits my profile",
         "what roles can i apply for"
     ],
-
     "FAILURE_REASON": [
         "why was i rejected",
         "why did i fail",
@@ -48,7 +43,6 @@ INTENTS = {
         "why am i not eligible",
         "why did i fail the screening"
     ],
-
     "LEARNING_PATH": [
         "learning roadmap",
         "learning path",
@@ -56,7 +50,6 @@ INTENTS = {
         "how can i improve my skills",
         "how to prepare for this role"
     ],
-
     "INTERVIEW": [
         "give interview questions",
         "start interview practice",
@@ -64,7 +57,6 @@ INTENTS = {
         "generate interview questions",
         "mock interview"
     ],
-
     "CAREER_ADVICE": [
         "what role should i target",
         "which career path is best for me",
@@ -76,21 +68,34 @@ INTENTS = {
 
 intent_embeddings = {}
 
+
 # -----------------------------------------
-# INITIALIZE INTENTS
+# INITIALIZE INTENTS (CALLED AT STARTUP)
 # -----------------------------------------
 
-def initialize_intents():
+async def initialize_intents():
+
+    model = await get_embedding_model()
+
     for intent, examples in INTENTS.items():
-        intent_embeddings[intent] = model.encode(examples)
+        intent_embeddings[intent] = model.encode(
+            examples,
+            normalize_embeddings=True
+        )
+
 
 # -----------------------------------------
 # DETECT INTENT
 # -----------------------------------------
 
-def detect_intent_semantic(query):
+async def detect_intent_semantic(query: str):
 
-    query_embedding = model.encode([query])[0]
+    model = await get_embedding_model()
+
+    query_embedding = model.encode(
+        [query],
+        normalize_embeddings=True
+    )[0]
 
     best_intent = None
     best_score = -1
@@ -98,7 +103,7 @@ def detect_intent_semantic(query):
     for intent, embeddings in intent_embeddings.items():
 
         scores = np.dot(embeddings, query_embedding)
-        score = max(scores)
+        score = float(np.max(scores))
 
         if score > best_score:
             best_score = score

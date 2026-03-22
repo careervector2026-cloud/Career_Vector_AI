@@ -4,11 +4,12 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+.idea
 # Virtual Environment
 venv/
 env/
 .venv/
+
 
 # Environment variables
 .env
@@ -44,4 +45,3 @@ Thumbs.db
 # Coverage
 htmlcov/
 .coverage
-.env

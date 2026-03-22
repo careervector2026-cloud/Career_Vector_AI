@@ -1,10 +1,38 @@
+# answer_analyzer.py
+
 from functools import lru_cache
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import asyncio
 
-from analyzers.model_registry import get_model_sync
+from analyzers.model_registry import get_embedding_model
 
-model = get_model_sync()
+
+# -------------------------------------------------
+# GLOBAL MODEL CACHE
+# -------------------------------------------------
+
+_model = None
+
+
+def get_model():
+    global _model
+
+    if _model is None:
+        try:
+            loop = asyncio.get_event_loop()
+
+            if loop.is_running():
+                # FastAPI loop running → fallback
+                _model = asyncio.run(get_embedding_model())
+            else:
+                _model = asyncio.run(get_embedding_model())
+
+        except RuntimeError:
+            _model = asyncio.run(get_embedding_model())
+
+    return _model
+
 
 # -------------------------------------------------
 # EMBEDDING CACHE
@@ -13,13 +41,15 @@ model = get_model_sync()
 @lru_cache(maxsize=512)
 def encode_text(text: str):
 
-    embedding = EMBEDDING_MODEL.encode(text, normalize_embeddings=True)
+    model = get_model()
+
+    embedding = model.encode(text)
 
     return np.array(embedding).astype("float32")
 
 
 # -------------------------------------------------
-# INTERVIEW EVALUATION
+# INTERVIEW EVALUATION (SYNC)
 # -------------------------------------------------
 
 def evaluate_interview(answers):
@@ -33,14 +63,13 @@ def evaluate_interview(answers):
         expected = item.get("expected_answer", "")
         keywords = item.get("keywords", [])
 
-        # ✅ EMPTY ANSWER
-        if not answer or not answer.strip():
+        if not answer.strip():
+            scores.append(0.0)
             results.append({
                 "question": item.get("question", ""),
                 "score": 0.0,
                 "matched_keywords": []
             })
-            scores.append(0.0)
             continue
 
         emb1 = encode_text(answer)
@@ -51,8 +80,6 @@ def evaluate_interview(answers):
             emb2.reshape(1, -1)
         )[0][0]
 
-        similarity = max(similarity, 0.0)
-
         keyword_hits = [
             k for k in keywords
             if k.lower() in answer.lower()
@@ -60,8 +87,7 @@ def evaluate_interview(answers):
 
         keyword_score = len(keyword_hits) / max(len(keywords), 1)
 
-        final_score = float(0.7 * similarity + 0.3 * keyword_score)
-        final_score = max(0.0, min(final_score, 1.0))
+        final_score = float((0.7 * similarity) + (0.3 * keyword_score))
 
         scores.append(final_score)
 

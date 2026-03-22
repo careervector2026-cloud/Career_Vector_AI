@@ -1,6 +1,8 @@
+# talent_search.py
+
 import numpy as np
 from functools import lru_cache
-from analyzers.model_registry import get_model_sync
+from analyzers.model_registry import get_embedding_model
 from analyzers.resume_parser import parse_resume_from_url
 
 try:
@@ -11,19 +13,28 @@ except Exception:
 
 
 # -------------------------------------------------
-# RESUME EMBEDDING CACHE
+# RESUME EMBEDDING CACHE (SYNC SAFE WRAPPER)
 # -------------------------------------------------
 
-@lru_cache(maxsize=2048)
-def get_resume_embedding_cached(resume_url):
+_resume_cache = {}
 
-    model = get_model_sync()
+
+async def get_resume_embedding(resume_url):
+
+    if resume_url in _resume_cache:
+        return _resume_cache[resume_url]
+
+    model = await get_embedding_model()
 
     resume_text = parse_resume_from_url(resume_url)
 
     emb = model.encode(resume_text)
 
-    return np.array(emb).astype("float32")
+    emb = np.array(emb).astype("float32")
+
+    _resume_cache[resume_url] = emb
+
+    return emb
 
 
 # -------------------------------------------------
@@ -32,7 +43,7 @@ def get_resume_embedding_cached(resume_url):
 
 async def search_talent_pool(query, candidates, top_k=10):
 
-    model = get_model_sync()
+    model = await get_embedding_model()
 
     query_embedding = model.encode(query)
     query_embedding = np.array(query_embedding).astype("float32")
@@ -45,7 +56,7 @@ async def search_talent_pool(query, candidates, top_k=10):
         cid = c.get("candidate_id")
         resume_url = c.get("resume_url")
 
-        emb = get_resume_embedding_cached(resume_url)
+        emb = await get_resume_embedding(resume_url)
 
         candidate_embeddings.append(emb)
         candidate_ids.append(cid)

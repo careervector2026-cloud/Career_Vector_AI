@@ -39,17 +39,20 @@ interview_sessions = {}
 
 EMBEDDING_MODEL = None
 
+
 @app.on_event("startup")
 async def load_model():
-
     global EMBEDDING_MODEL
 
     from analyzers.model_registry import get_embedding_model
+
     EMBEDDING_MODEL = await get_embedding_model()
 
-    # ✅ MOVE HERE (after model loads)
+    print("✅ Embedding model loaded successfully")
+
+    # chatbot init (keep this)
     from chatbot.chatbot_intent_engine import initialize_intents
-    initialize_intents()
+    await initialize_intents()
 # -------------------------------------------------
 # ANALYZE SINGLE CANDIDATE
 # -------------------------------------------------
@@ -512,3 +515,7 @@ async def skill_gap_trends(college_name: str):
 @app.get("/admin/student-progression")
 async def student_progression(student_id: str):
     return await get_student_progression(student_id)
+
+from recruiter_router import router as recruiter_router
+
+app.include_router(recruiter_router)

@@ -1,11 +1,9 @@
 # admin/admin_dashboard.py
-
 from db.neon_db import get_pool
-from collections import Counter
 
 
 # -------------------------------------------------
-# 1. PLACEMENT FUNNEL
+# COLLEGE-WISE PLACEMENT FUNNEL WITH PERCENTAGES
 # -------------------------------------------------
 async def get_placement_funnel(college_name: str):
 
@@ -14,58 +12,104 @@ async def get_placement_funnel(college_name: str):
     async with pool.acquire() as conn:
 
         rows = await conn.fetch("""
-            SELECT student_id, status
+            SELECT student_id, status, recruiter_status
             FROM candidate_analysis_cache
             WHERE college_name = $1
         """, college_name)
 
-        # -------------------------------
-        # STEP 1: GROUP STATUSES PER STUDENT
-        # -------------------------------
-        student_status_map = {}
+        # -------------------------------------------------
+        # STEP 1: GROUP PER STUDENT (DEDUP)
+        # -------------------------------------------------
+        student_map = {}
 
         for r in rows:
             sid = r["student_id"]
-            status = r["status"]
 
-            if sid not in student_status_map:
-                student_status_map[sid] = set()
+            if sid not in student_map:
+                student_map[sid] = {
+                    "statuses": set(),
+                    "recruiter_statuses": set()
+                }
 
-            student_status_map[sid].add(status)
+            if r["status"]:
+                student_map[sid]["statuses"].add(r["status"])
 
-        # -------------------------------
-        # STEP 2: APPLY PRIORITY LOGIC
-        # -------------------------------
-        shortlisted = set()
-        review = set()
+            if r["recruiter_status"]:
+                student_map[sid]["recruiter_statuses"].add(r["recruiter_status"])
+
+        # -------------------------------------------------
+        # STEP 2: FINAL CLASSIFICATION (MUTUALLY EXCLUSIVE)
+        # -------------------------------------------------
+        hired = set()
         rejected = set()
+        shortlisted_pending = set()
+        review_pending = set()
 
-        for sid, statuses in student_status_map.items():
+        for sid, data in student_map.items():
 
-            if "shortlist" in statuses:
-                shortlisted.add(sid)
+            statuses = data["statuses"]
+            recruiter_statuses = data["recruiter_statuses"]
 
-            elif "review" in statuses:
-                review.add(sid)
+            # 1. FINAL HIRED (highest priority)
+            status_normalized = {s.lower() for s in statuses}
 
+            if "hired" in recruiter_statuses:
+                hired.add(sid)
+            elif "shortlisted" in status_normalized or "shortlist" in status_normalized:
+                shortlisted_pending.add(sid)
+
+            elif "review" in status_normalized:
+                review_pending.add(sid)
+            elif "rejected" in recruiter_statuses or "reject" in recruiter_statuses:
+                rejected.add(sid)
             else:
                 rejected.add(sid)
 
-        # -------------------------------
-        # STEP 3: FINAL COUNTS
-        # -------------------------------
-        total_students = len(student_status_map)
+        # -------------------------------------------------
+        # STEP 3: COUNTS
+        # -------------------------------------------------
+        total_students = len(student_map)
 
-        return {
+        hired_count = len(hired)
+        rejected_count = len(rejected)
+        shortlisted_count = len(shortlisted_pending)
+        review_count = len(review_pending)
+
+        # -------------------------------------------------
+        # STEP 4: PERCENTAGES
+        # -------------------------------------------------
+        def calc_percent(value):
+            return round((value / total_students) * 100, 2) if total_students > 0 else 0
+
+        result = {
+            "college_name": college_name,
+
+            # counts
             "total_students": total_students,
-            "shortlisted": len(shortlisted),
-            "review": len(review),
-            "rejected": len(rejected),
-            "conversion_rate": round(
-                (len(shortlisted) / total_students) * 100, 2
-            ) if total_students else 0
+            "hired": hired_count,
+            "rejected": rejected_count,
+            "shortlisted_pending": shortlisted_count,
+            "review_pending": review_count,
+
+            # percentages
+            "hired_percentage": calc_percent(hired_count),
+            "rejected_percentage": calc_percent(rejected_count),
+            "shortlisted_percentage": calc_percent(shortlisted_count),
+            "review_percentage": calc_percent(review_count),
         }
 
+        # -------------------------------------------------
+        # STEP 5: SANITY CHECK (OPTIONAL DEBUG)
+        # -------------------------------------------------
+        result["total_percentage_check"] = round(
+            result["hired_percentage"]
+            + result["rejected_percentage"]
+            + result["shortlisted_percentage"]
+            + result["review_percentage"],
+            2
+        )
+
+        return result
 # -------------------------------------------------
 # 2. TOP STUDENTS
 # -------------------------------------------------

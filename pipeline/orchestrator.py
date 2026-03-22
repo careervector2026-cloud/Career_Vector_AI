@@ -182,8 +182,6 @@ async def analyze_candidate_async(
         response["explanation"] = explanation
         response["alternative_roles"] = alternatives
         response["candidate_report"] = report
-        # response["what_if_analysis"] = generate_what_if_analysis(response)
-        # response["action_plan"] = generate_action_plan(response)
 
         # -----------------------------
         # CACHE STORE
@@ -304,8 +302,6 @@ async def analyze_candidate_async(
     response["explanation"] = explanation
     response["alternative_roles"] = alternatives
     response["candidate_report"] = report
-    # response["what_if_analysis"] = generate_what_if_analysis(response)
-    # response["action_plan"] = generate_action_plan(response)
 
     # -----------------------------
     # CACHE STORE

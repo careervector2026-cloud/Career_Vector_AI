@@ -1,19 +1,11 @@
-#ats_screening
+# ats_screening.py
+
 from analyzers.model_registry import get_embedding_model
 from sklearn.metrics.pairwise import cosine_similarity
 from functools import lru_cache
-import asyncio
-import concurrent.futures
 
 SIMILARITY_THRESHOLD = 0.70
 
-# -------------------------------------------------
-# SAFE MODEL LOADER (THREAD-SAFE)
-# -------------------------------------------------
-
-from analyzers.model_registry import get_model_sync
-
-model = get_model_sync()
 
 # -------------------------------------------------
 # TECHNOLOGY FAMILY MAPPING
@@ -30,6 +22,10 @@ SKILL_FAMILIES = {
 }
 
 
+# -------------------------------------------------
+# PROXIMITY SKILL RECOVERY (RULE-BASED)
+# -------------------------------------------------
+
 def proximity_skill_recovery(missing_skills, matched_skills):
 
     recovered = []
@@ -45,30 +41,15 @@ def proximity_skill_recovery(missing_skills, matched_skills):
 
 
 # -------------------------------------------------
-# CACHE JD EMBEDDINGS
+# SEMANTIC SKILL RECOVERY (MODEL-BASED)
 # -------------------------------------------------
 
-@lru_cache(maxsize=128)
-def get_jd_skill_embeddings(skills_tuple):
-
-    model = EMBEDDING_MODEL
-
-    return model.encode(
-        list(skills_tuple),
-        normalize_embeddings=True
-    )
-
-
-# -------------------------------------------------
-# SEMANTIC SKILL RECOVERY
-# -------------------------------------------------
-
-def semantic_skill_recovery(missing_skills, matched_skills):
+async def semantic_skill_recovery(missing_skills, matched_skills):
 
     if not missing_skills or not matched_skills:
         return []
 
-    model = EMBEDDING_MODEL
+    model = await get_embedding_model()
 
     try:
         missing_emb = model.encode(
@@ -76,7 +57,10 @@ def semantic_skill_recovery(missing_skills, matched_skills):
             normalize_embeddings=True
         )
 
-        matched_emb = get_jd_skill_embeddings(tuple(matched_skills))
+        matched_emb = model.encode(
+            matched_skills,
+            normalize_embeddings=True
+        )
 
         recovered = []
 
@@ -176,10 +160,10 @@ def ats_format_score(resume_text):
 
 
 # -------------------------------------------------
-# MAIN ATS FUNCTION
+# MAIN ATS FUNCTION (ASYNC SAFE)
 # -------------------------------------------------
 
-def compute_ats_screening(resume_jd, resume_text=""):
+async def compute_ats_screening(resume_jd, resume_text=""):
 
     matched = resume_jd.get("matched_skills", [])
     missing = resume_jd.get("missing_skills", [])
@@ -190,7 +174,7 @@ def compute_ats_screening(resume_jd, resume_text=""):
     # -------------------------------
 
     proximity = proximity_skill_recovery(missing, matched)
-    semantic = semantic_skill_recovery(missing, matched)
+    semantic = await semantic_skill_recovery(missing, matched)
     project = detect_project_skills(resume_text, missing)
 
     recovered = list(set(proximity + semantic + project))
