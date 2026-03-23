@@ -175,6 +175,7 @@ async def get_at_risk_students(college_name: str):
 # -------------------------------------------------
 # 4. SKILL GAP TRENDS
 # -------------------------------------------------
+import json
 from collections import Counter
 
 async def get_skill_gap_trends(college_name: str):
@@ -197,6 +198,16 @@ async def get_skill_gap_trends(college_name: str):
             if not result:
                 continue
 
+            # 🔥 DOUBLE PARSE FIX
+            while isinstance(result, str):
+                try:
+                    result = json.loads(result)
+                except:
+                    break
+
+            if not isinstance(result, dict):
+                continue
+
             failure = result.get("failure_diagnosis")
             if not failure:
                 continue
@@ -204,17 +215,15 @@ async def get_skill_gap_trends(college_name: str):
             reasons = failure.get("primary_reasons", [])
 
             for item in reasons:
-                # 🔥 FIX: item is dict, not string
-                skill = item.get("skill")
-
-                if skill:
-                    counter[skill] += 1
+                if isinstance(item, dict):
+                    skill = item.get("skill")
+                    if skill:
+                        counter[skill] += 1
 
         return [
             {"skill": k, "count": v}
             for k, v in counter.most_common(10)
         ]
-
 # -------------------------------------------------
 # 5. STUDENT PROGRESSION
 # -------------------------------------------------

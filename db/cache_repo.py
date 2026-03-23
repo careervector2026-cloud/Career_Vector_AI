@@ -83,7 +83,7 @@ async def store_analysis(cache_key: str, data: dict):
             data.get("college_name"),
             data.get("student_id"),
             jd_id,                         # 🔥 PASS HERE
-            json.dumps(result),
+            result,
             result.get("status") or result.get("decision"),
             float(result.get("final_score", 0))
         )
