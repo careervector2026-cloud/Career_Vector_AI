@@ -40,7 +40,7 @@ class RecruiterDecisionJDTextRequest(BaseModel):
     decision: str
 
 
-@router.post("/recruiter/decision-by-jd-text")
+@router.post("/decision-by-jd-text")
 async def recruiter_decision_jd_text(req: RecruiterDecisionJDTextRequest):
 
     try:

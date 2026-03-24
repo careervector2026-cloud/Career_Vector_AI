@@ -410,6 +410,7 @@ async def match_student_against_multiple_jds_async(
             student_profile.get("leetcode_username"),
             student_profile.get("college_name"),
             student_profile.get("student_id")
+
         )
         for jd in jds
     ])
@@ -461,7 +462,13 @@ async def match_student_against_multiple_jds_async(
 # -------------------------------------------------
 # MARKET DEMAND
 # -------------------------------------------------
+from collections import Counter
+from typing import List
+import math
+
+
 async def generate_market_demand_heatmap(jds: List[str]):
+
     counter = Counter()
 
     for jd in jds:
@@ -469,11 +476,46 @@ async def generate_market_demand_heatmap(jds: List[str]):
 
     total = sum(counter.values()) or 1
 
-    return sorted(
-        [{"skill": k, "demand_score": round(v / total, 2)} for k, v in counter.items()],
-        key=lambda x: x["demand_score"],
-        reverse=True
-    )
+    # Step 1: exact scores
+    items = []
+    for k, v in counter.items():
+        exact = v / total
+        floor_val = math.floor(exact * 100) / 100  # truncate to 2 decimals
+        remainder = exact - floor_val
+
+        items.append({
+            "skill": k,
+            "exact": exact,
+            "floor": floor_val,
+            "remainder": remainder
+        })
+
+    # Step 2: compute remaining points
+    floor_sum = sum(x["floor"] for x in items)
+    remaining = round(1 - floor_sum, 2)
+
+    # number of 0.01 units to distribute
+    units = int(round(remaining * 100))
+
+    # Step 3: distribute based on largest remainder
+    items.sort(key=lambda x: x["remainder"], reverse=True)
+
+    for i in range(units):
+        items[i]["floor"] += 0.01
+
+    # Step 4: format output
+    result = [
+        {
+            "skill": x["skill"],
+            "demand_score": round(x["floor"], 2)
+        }
+        for x in items
+    ]
+
+    # final sort
+    result.sort(key=lambda x: x["demand_score"], reverse=True)
+
+    return result
 # -------------------------------------------------
 # SKILL GAP REPORT (REQUIRED FOR APP.PY)
 # -------------------------------------------------
