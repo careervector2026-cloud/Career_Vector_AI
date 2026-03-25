@@ -49,9 +49,31 @@ async def store_analysis(cache_key: str, data: dict):
 
         result = data.get("result", {})
 
-        jd_text = data.get("jd_text", "")   # 🔥 REQUIRED
-        jd_id = generate_jd_id(jd_text)     # 🔥 GENERATED HERE
+        jd_text = data.get("jd_text", "")
+        jd_id = generate_jd_id(jd_text)
 
+        # -------------------------------------------------
+        # 🔥 NORMALIZE AI STATUS (CRITICAL FIX)
+        # -------------------------------------------------
+        raw_status = result.get("status") or result.get("decision")
+
+        status = None
+
+        if raw_status:
+            s = raw_status.strip().lower().replace("_", " ")
+
+            if s in ["shortlist", "shortlisted"]:
+                status = "shortlisted"
+
+            elif s in ["review", "under review"]:
+                status = "review"
+
+            elif s in ["reject", "rejected"]:
+                status = "rejected"   # ✅ important
+
+        # -------------------------------------------------
+        # 🔥 INSERT
+        # -------------------------------------------------
         await conn.execute(
             """
             INSERT INTO candidate_analysis_cache (
@@ -61,7 +83,7 @@ async def store_analysis(cache_key: str, data: dict):
                 leetcode_username,
                 college_name,
                 student_id,
-                jd_id,              -- 🔥 NEW COLUMN
+                jd_id,
                 result,
                 status,
                 final_score
@@ -74,7 +96,7 @@ async def store_analysis(cache_key: str, data: dict):
                 final_score = EXCLUDED.final_score,
                 college_name = EXCLUDED.college_name,
                 student_id = EXCLUDED.student_id,
-                jd_id = EXCLUDED.jd_id      -- 🔥 UPDATE ALSO
+                jd_id = EXCLUDED.jd_id
             """,
             cache_key,
             data.get("resume_url"),
@@ -82,8 +104,8 @@ async def store_analysis(cache_key: str, data: dict):
             data.get("leetcode_username"),
             data.get("college_name"),
             data.get("student_id"),
-            jd_id,                         # 🔥 PASS HERE
-            result,
-            result.get("status") or result.get("decision"),
+            jd_id,
+            json.dumps(result),   # ✅ FIXED (MANDATORY)
+            status,               # ✅ NORMALIZED
             float(result.get("final_score", 0))
         )

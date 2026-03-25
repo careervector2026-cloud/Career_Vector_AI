@@ -47,7 +47,7 @@ async def recruiter_decision_jd_text(req: RecruiterDecisionJDTextRequest):
         result = await update_recruiter_decision_with_jd_text(
             req.student_id,
             req.jd_text,
-            req.decision
+            req.decision.lower()
         )
         return result
 

@@ -1,8 +1,8 @@
 #app.py
 from fastapi import FastAPI, Request, HTTPException, Query
 
-from admin.admin_dashboard import get_placement_funnel, get_top_students, get_at_risk_students, get_skill_gap_trends, \
-    get_student_progression
+from admin.admin_dashboard import  get_top_students, get_at_risk_students, get_skill_gap_trends, \
+    get_student_progression,  get_full_funnel_with_students
 # ATS
 from ats.ats_resume_fixer import generate_ats_fix_suggestions
 from ats.ats_screening import compute_ats_screening
@@ -492,10 +492,21 @@ async def learning_path_from_jd(request: Request):
 # ADMIN DASHBOARD APIs
 # -------------------------------------------------
 
-@app.get("/admin/placement-funnel")
-async def placement_funnel(college_name: str):
-    return await get_placement_funnel(college_name)
+from pydantic import BaseModel
+from typing import List
 
+class FunnelRequest(BaseModel):
+    college_name: str
+    jd_texts: List[str]
+
+
+@app.post("/admin/placement-funnel")
+async def placement_funnel(req: FunnelRequest):
+
+    return await get_full_funnel_with_students(
+        req.college_name,
+        req.jd_texts
+    )
 
 @app.get("/admin/top-students")
 async def top_students(college_name: str):

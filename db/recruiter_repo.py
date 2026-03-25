@@ -2,26 +2,52 @@
 
 from db.neon_db import get_pool
 from datetime import datetime
-from utils.cache import generate_jd_id   # 🔥 your function
+from utils.cache import generate_jd_id
+
 
 # -------------------------------------------------
-# UPDATE RECRUITER DECISION
+# NORMALIZATION FUNCTION
+# -------------------------------------------------
+def normalize_decision(decision: str) -> str:
+
+    if not decision:
+        raise ValueError("Decision is required")
+
+    d = decision.strip().lower()
+
+    # 🔥 FIX: normalize underscores → spaces
+    d = d.replace("_", " ")
+
+    mapping = {
+        "hired": "hired",
+        "selected": "hired",
+
+        "rejected": "rejected",
+        "reject": "rejected",
+
+        "shortlisted": "shortlisted",
+        "shortlist": "shortlisted",
+
+        "under review": "review",
+        "review": "review"
+    }
+
+    if d not in mapping:
+        raise ValueError(f"Invalid decision: {decision}")
+
+    return mapping[d]
+
+# -------------------------------------------------
+# UPDATE USING CACHE KEY
 # -------------------------------------------------
 async def update_recruiter_decision(cache_key: str, decision: str):
-    """
-    decision: 'hired' | 'rejected'
-    """
 
-    if decision not in ["hired", "rejected"]:
-        raise ValueError("Invalid decision. Must be 'hired' or 'rejected'")
+    decision = normalize_decision(decision)
 
     pool = await get_pool()
 
     async with pool.acquire() as conn:
 
-        # -------------------------------------------------
-        # VALIDATION: candidate must exist
-        # -------------------------------------------------
         row = await conn.fetchrow(
             """
             SELECT status, recruiter_status
@@ -35,28 +61,39 @@ async def update_recruiter_decision(cache_key: str, decision: str):
             raise ValueError("Candidate not found")
 
         # -------------------------------------------------
-        # VALIDATION: only shortlisted candidates allowed
+        # PIPELINE STATE UPDATE
         # -------------------------------------------------
-        if row["status"] != "shortlisted":
-            raise ValueError("Recruiter decision allowed only for shortlisted candidates")
+        if decision in ["shortlisted", "review"]:
+
+            await conn.execute(
+                """
+                UPDATE candidate_analysis_cache
+                SET recruiter_status = $1
+                WHERE cache_key = $2
+                """,
+                decision,
+                cache_key
+            )
+
+            return {
+                "message": f"Candidate moved to {decision}"
+            }
 
         # -------------------------------------------------
-        # OPTIONAL: prevent overwrite (strong design)
+        # FINAL DECISION (hired / rejected)
         # -------------------------------------------------
         if row["recruiter_status"] in ["hired", "rejected"]:
-            raise ValueError("Decision already made for this candidate")
+            raise ValueError("Final decision already made")
 
-        # -------------------------------------------------
-        # UPDATE
-        # -------------------------------------------------
         await conn.execute(
             """
             UPDATE candidate_analysis_cache
             SET recruiter_status = $1,
-                recruiter_decision_at = NOW()
-            WHERE cache_key = $2
+                recruiter_decision_at = $2
+            WHERE cache_key = $3
             """,
             decision,
+            datetime.utcnow(),
             cache_key
         )
 
@@ -64,8 +101,9 @@ async def update_recruiter_decision(cache_key: str, decision: str):
         "message": f"Candidate marked as {decision}"
     }
 
+
 # -------------------------------------------------
-# UPDATE USING JD_TEXT
+# UPDATE USING JD TEXT
 # -------------------------------------------------
 async def update_recruiter_decision_with_jd_text(
     student_id: str,
@@ -73,12 +111,9 @@ async def update_recruiter_decision_with_jd_text(
     decision: str
 ):
 
-    decision = decision.lower()
+    decision = normalize_decision(decision)
 
-    if decision not in ["hired", "rejected"]:
-        raise ValueError("Invalid decision")
-
-    jd_id = generate_jd_id(jd_text)   # 🔥 CRITICAL
+    jd_id = generate_jd_id(jd_text)
 
     pool = await get_pool()
 
@@ -86,7 +121,7 @@ async def update_recruiter_decision_with_jd_text(
 
         row = await conn.fetchrow(
             """
-            SELECT status
+            SELECT status, recruiter_status
             FROM candidate_analysis_cache
             WHERE student_id = $1 AND jd_id = $2
             """,
@@ -97,10 +132,33 @@ async def update_recruiter_decision_with_jd_text(
         if not row:
             raise ValueError("No matching record found for given JD")
 
-        current_status = row["status"]
+        # -------------------------------------------------
+        # PIPELINE STATE UPDATE
+        # -------------------------------------------------
+        if decision in ["shortlisted", "review"]:
 
-        if current_status == "reject":
-            raise ValueError("Cannot update rejected candidate")
+            await conn.execute(
+                """
+                UPDATE candidate_analysis_cache
+                SET recruiter_status = $1
+                WHERE student_id = $2 AND jd_id = $3
+                """,
+                decision,
+                student_id,
+                jd_id
+            )
+
+            return {
+                "message": f"Candidate moved to {decision}",
+                "student_id": student_id,
+                "jd_id": jd_id
+            }
+
+        # -------------------------------------------------
+        # FINAL DECISION
+        # -------------------------------------------------
+        if row["recruiter_status"] in ["hired", "rejected"]:
+            raise ValueError("Final decision already made")
 
         await conn.execute(
             """
@@ -116,7 +174,7 @@ async def update_recruiter_decision_with_jd_text(
         )
 
     return {
-        "message": "Updated using jd_text",
+        "message": "Decision updated",
         "student_id": student_id,
         "jd_id": jd_id,
         "decision": decision
