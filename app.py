@@ -1,8 +1,8 @@
 #app.py
 from fastapi import FastAPI, Request, HTTPException, Query
 
-from admin.admin_dashboard import  get_top_students, get_at_risk_students, get_skill_gap_trends, \
-    get_student_progression,  get_full_funnel_with_students
+from admin.admin_dashboard import get_top_students, get_at_risk_students, get_skill_gap_trends, \
+    get_student_progression, get_full_funnel_with_students, get_jd_wise_funnel
 # ATS
 from ats.ats_resume_fixer import generate_ats_fix_suggestions
 from ats.ats_screening import compute_ats_screening
@@ -67,14 +67,15 @@ async def analyze(request: Request):
         raise HTTPException(422, "resume_url, job_description and student_id required")
 
     jd_context = await build_jd_context(data["job_description"])
-
+    store_in_db = data.get("store_in_db") is True
     return await analyze_candidate_async(
         resume_url=data["resume_url"],
         jd_context=jd_context,
         github_url=data.get("github_url"),
         leetcode_username=data.get("leetcode_username"),
         college_name=data.get("college_name"),
-        student_id=student_id   # 🔥 NEW
+        student_id=student_id,   # 🔥 NEW
+        store_in_db=store_in_db
     )
 
 # -------------------------------------------------
@@ -215,14 +216,14 @@ async def job_readiness(request: Request):
         raise HTTPException(422, "student_id required")
 
     jd_context = await build_jd_context(data["job_description"])
-
+    store_in_db = data.get("store_in_db") is True
     result = await analyze_candidate_async(
         resume_url=data["resume_url"],
         jd_context=jd_context,
         github_url=data.get("github_url"),
         leetcode_username=data.get("leetcode_username"),
         college_name=data.get("college_name"),
-        student_id=student_id
+        student_id=student_id,store_in_db=store_in_db
     )
 
     return {
@@ -243,14 +244,15 @@ async def failure_diagnosis(request: Request):
         raise HTTPException(422, "student_id required")
 
     jd_context = await build_jd_context(data["job_description"])
-
+    store_in_db = data.get("store_in_db") is True
     result = await analyze_candidate_async(
         resume_url=data["resume_url"],
         jd_context=jd_context,
         github_url=data.get("github_url"),
         leetcode_username=data.get("leetcode_username"),
         college_name=data.get("college_name"),
-        student_id=student_id
+        student_id=student_id,
+        store_in_db=store_in_db
     )
 
     if result["status"] == "shortlist":
@@ -320,7 +322,26 @@ async def talent_search(request: Request):
         data["candidates"],
         data.get("top_k", 10)
     )
+@app.post("/extract-skills")
+async def extract_skills_api(request: Request):
 
+    data = await request.json()
+
+    resume_url = data.get("resume_url")
+
+    if not resume_url:
+        raise HTTPException(422, "resume_url required")
+
+    # ✅ parser returns STRING
+    resume_text = parse_resume_from_url(resume_url)
+
+    from analyzers.matcher import extract_skills
+
+    skills = extract_skills(resume_text.lower())
+
+    return {
+        "skills": list(set(skills))
+    }
 # -------------------------------------------------
 # INTERVIEW QUESTIONS
 # -------------------------------------------------
@@ -508,6 +529,12 @@ async def placement_funnel(req: FunnelRequest):
         req.jd_texts
     )
 
+@app.post("/admin/jd-funnel")
+async def jd_funnel(req: FunnelRequest):
+    return await get_jd_wise_funnel(
+        req.college_name,
+        req.jd_texts
+    )
 @app.get("/admin/top-students")
 async def top_students(college_name: str):
     return await get_top_students(college_name)

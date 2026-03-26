@@ -13,8 +13,7 @@ def normalize_text(text: str) -> str:
 
 
 def safe_str(value):
-    return value if value is not None else ""
-
+    return str(value) if value is not None else ""
 
 # -------------------------------------------------
 # JD ID GENERATION (CRITICAL FIX)
@@ -34,7 +33,8 @@ def generate_cache_key(
     jd_text: str,
     github_url: str = None,
     leetcode_username: str = None,
-    student_id: str = None
+    student_id: str = None,
+    store_in_db: bool = False
 ) -> str:
     jd_id = generate_jd_id(jd_text)
 
@@ -43,7 +43,8 @@ def generate_cache_key(
         jd_id,                      # stable job identity
         safe_str(resume_url),
         safe_str(github_url),
-        safe_str(leetcode_username)
+        safe_str(leetcode_username),
+        safe_str(store_in_db)
     ])
 
     return hashlib.sha256(raw.encode()).hexdigest()

@@ -244,6 +244,99 @@ async def get_full_funnel_with_students(college_name: str, jd_texts: List[str]):
 
             "students": students_output
         }
+
+async def get_jd_wise_funnel(college_name: str, jd_texts: list):
+
+    from utils.cache import generate_jd_id
+
+    jd_ids = [generate_jd_id(jd) for jd in jd_texts]
+
+    pool = await get_pool()
+
+    async with pool.acquire() as conn:
+
+        rows = await conn.fetch("""
+            SELECT jd_id, status, recruiter_status
+            FROM candidate_analysis_cache
+            WHERE college_name = $1
+            AND jd_id = ANY($2)
+        """, college_name, jd_ids)
+
+        jd_map = defaultdict(list)
+
+        # -----------------------------
+        # GROUP APPLICATIONS PER JD
+        # -----------------------------
+        for r in rows:
+            jd_map[r["jd_id"]].append({
+                "ai": (r["status"] or "").lower(),
+                "rec": (r["recruiter_status"] or "").lower()
+            })
+
+        results = []
+
+        for jd_id, apps in jd_map.items():
+
+            total = len(apps)
+
+            shortlisted = 0
+            review = 0
+            hired = 0
+            rejected = 0
+
+            for app in apps:
+
+                ai = app["ai"]
+                rec = app["rec"]
+
+                # -----------------------------
+                # FINAL DECISION PRIORITY
+                # -----------------------------
+                if rec == "hired":
+                    hired += 1
+
+                elif rec == "rejected":
+                    rejected += 1
+
+                # -----------------------------
+                # PENDING STATES
+                # -----------------------------
+                elif ai == "shortlisted":
+                    shortlisted += 1
+
+                elif ai == "review":
+                    review += 1
+
+                # -----------------------------
+                # TRUE REJECTION
+                # -----------------------------
+                else:
+                    rejected += 1
+
+            # -----------------------------
+            # METRICS
+            # -----------------------------
+            def safe_div(a, b):
+                return round(a / b, 2) if b > 0 else 0
+
+            results.append({
+                "jd_id": jd_id,
+                "applications": total,
+                "shortlisted": shortlisted,
+                "review": review,
+                "hired": hired,
+                "rejected": rejected,
+
+                "shortlist_to_hire_rate": safe_div(hired, shortlisted),
+                "review_to_hire_rate": safe_div(hired, review),
+                "overall_hire_rate": safe_div(hired, total),
+                "dropoff_rate": safe_div(rejected, total)
+            })
+
+        return {
+            "college_name": college_name,
+            "jd_funnels": results
+        }
 # -------------------------------------------------
 # 2. TOP STUDENTS
 # -------------------------------------------------

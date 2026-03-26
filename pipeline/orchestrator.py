@@ -83,7 +83,8 @@ async def analyze_candidate_async(
     github_url: str = None,
     leetcode_username: str = None,
     college_name: str = None,
-    student_id: str = None
+    student_id: str = None,
+    store_in_db: bool = False
 ):
 
     jd_text = jd_context["jd_text"]
@@ -94,24 +95,26 @@ async def analyze_candidate_async(
         jd_text,
         github_url,
         leetcode_username,
-        student_id
+        student_id,
+        store_in_db
     )
 
-    # -----------------------------
-    # CACHE CHECK
-    # -----------------------------
-    cached_mem = analysis_cache_memory.get(cache_key)
-    if cached_mem:
-        return cached_mem
+    # -------------------------------------------------
+    # CACHE CHECK (ONLY FOR PORTAL MODE)
+    # -------------------------------------------------
+    if store_in_db:
+        cached_mem = analysis_cache_memory.get(cache_key)
+        if cached_mem:
+            return cached_mem
 
-    cached = await get_cached_analysis(cache_key)
-    if cached:
-        analysis_cache_memory.set(cache_key, cached)
-        return cached
+        cached = await get_cached_analysis(cache_key)
+        if cached:
+            analysis_cache_memory.set(cache_key, cached)
+            return cached
 
-    # -----------------------------
+    # -------------------------------------------------
     # CORE PIPELINE
-    # -----------------------------
+    # -------------------------------------------------
     role_policy = infer_role_policy(jd_text)
     role_level = infer_role_level(jd_text)
 
@@ -140,9 +143,7 @@ async def analyze_candidate_async(
             "leetcode": {"score": 0.0}
         }
 
-        # -----------------------------
-        # INTELLIGENCE LAYERS
-        # -----------------------------
+        # INTELLIGENCE
         response["job_readiness"] = compute_job_readiness_score({
             "resume_jd": resume_jd,
             "github": response["github"],
@@ -172,31 +173,24 @@ async def analyze_candidate_async(
             role_level=role_level
         )
 
-        # -----------------------------
-        # 🔥 NEW FEATURES
-        # -----------------------------
-        explanation = generate_explanation(response)
-        alternatives = suggest_alternative_roles(response, {})
-        report = build_candidate_report(response, explanation, alternatives)
+        # -------------------------------------------------
+        # STORE (SAFE)
+        # -------------------------------------------------
+        if store_in_db:
+            existing = await get_cached_analysis(cache_key)
+            if not existing:
+                await store_analysis(cache_key, {
+                    "resume_url": resume_url,
+                    "jd_text": jd_text,
+                    "github_url": github_url,
+                    "leetcode_username": leetcode_username,
+                    "college_name": college_name,
+                    "student_id": student_id,
+                    "result": response
+                })
 
-        response["explanation"] = explanation
-        response["alternative_roles"] = alternatives
-        response["candidate_report"] = report
+            analysis_cache_memory.set(cache_key, response)
 
-        # -----------------------------
-        # CACHE STORE
-        # -----------------------------
-        await store_analysis(cache_key, {
-            "resume_url": resume_url,
-            "jd_text": jd_text,
-            "github_url": github_url,
-            "leetcode_username": leetcode_username,
-            "college_name": college_name,
-            "student_id": student_id,
-            "result": response
-        })
-
-        analysis_cache_memory.set(cache_key, response)
         return response
 
     # -------------------------------------------------
@@ -244,7 +238,7 @@ async def analyze_candidate_async(
         reason = "Below role-level threshold"
 
     # -------------------------------------------------
-    # FINAL RESPONSE
+    # RESPONSE
     # -------------------------------------------------
     response = {
         "final_score": final_score,
@@ -259,9 +253,7 @@ async def analyze_candidate_async(
         "leetcode": leetcode_result
     }
 
-    # -----------------------------
-    # INTELLIGENCE LAYERS
-    # -----------------------------
+    # INTELLIGENCE
     response["job_readiness"] = compute_job_readiness_score({
         "resume_jd": resume_jd,
         "github": github_result,
@@ -292,34 +284,25 @@ async def analyze_candidate_async(
             role_level=role_level
         )
 
-    # -----------------------------
-    # 🔥 NEW FEATURES
-    # -----------------------------
-    explanation = generate_explanation(response)
-    alternatives = suggest_alternative_roles(response, {})
-    report = build_candidate_report(response, explanation, alternatives)
+    # -------------------------------------------------
+    # STORE (SAFE)
+    # -------------------------------------------------
+    if store_in_db:
+        existing = await get_cached_analysis(cache_key)
+        if not existing:
+            await store_analysis(cache_key, {
+                "resume_url": resume_url,
+                "jd_text": jd_text,
+                "github_url": github_url,
+                "leetcode_username": leetcode_username,
+                "college_name": college_name,
+                "student_id": student_id,
+                "result": response
+            })
 
-    response["explanation"] = explanation
-    response["alternative_roles"] = alternatives
-    response["candidate_report"] = report
-
-    # -----------------------------
-    # CACHE STORE
-    # -----------------------------
-    await store_analysis(cache_key, {
-        "resume_url": resume_url,
-        "jd_text": jd_text,
-        "github_url": github_url,
-        "leetcode_username": leetcode_username,
-        "college_name": college_name,
-        "student_id": student_id,
-        "result": response
-    })
-
-    analysis_cache_memory.set(cache_key, response)
+        analysis_cache_memory.set(cache_key, response)
 
     return response
-
 # -------------------------------------------------
 # RECRUITER FLOW
 # -------------------------------------------------
@@ -329,7 +312,8 @@ async def analyze_candidate_limited(
     github_url=None,
     leetcode_username=None,
     college_name=None,
-    student_id=None   # 🔥 ADD
+    student_id=None,
+    store_in_db=True
 ):
     async with analysis_semaphore:
         return await analyze_candidate_async(
@@ -338,7 +322,8 @@ async def analyze_candidate_limited(
             github_url,
             leetcode_username,
             college_name,
-            student_id   # 🔥 PASS
+            student_id,
+            store_in_db=store_in_db
         )
 async def rank_candidates_against_jd_async(jd_text: str, candidates: List[Dict]):
     jd_context = await build_jd_context(jd_text)
@@ -350,7 +335,8 @@ async def rank_candidates_against_jd_async(jd_text: str, candidates: List[Dict])
             c.get("github_url"),
             c.get("leetcode_username"),
             c.get("college_name"),
-            c.get("student_id")
+            c.get("student_id"),
+            store_in_db=True
         ) for c in candidates
     ])
 
@@ -409,8 +395,8 @@ async def match_student_against_multiple_jds_async(
             student_profile.get("github_url"),
             student_profile.get("leetcode_username"),
             student_profile.get("college_name"),
-            student_profile.get("student_id")
-
+            student_profile.get("student_id"),
+            store_in_db=True
         )
         for jd in jds
     ])
